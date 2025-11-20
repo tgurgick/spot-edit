@@ -23,8 +23,18 @@ export interface Template {
   id: string;
   name: string;
   createdAt: string;
+  updatedAt?: string;
   documentText: string;
   fields: Field[];
+}
+
+// Template metadata for list views
+export interface TemplateMetadata {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt?: string;
+  fieldCount: number;
 }
 
 // API Request/Response types
@@ -67,6 +77,19 @@ export interface UpdateTemplateResponse {
   fieldsChanged: string[];
 }
 
+// Extended update response with proposed changes (for Path 5)
+export interface UpdateResponse {
+  success: boolean;
+  updated_template?: Template;
+  proposed_changes?: {
+    field_id: string;
+    field_name: string;
+    old_value: string;
+    new_value: string;
+  }[];
+  error?: string;
+}
+
 export interface ErrorResponse {
   error: string;
   message: string;
@@ -87,4 +110,13 @@ export interface ConfirmationState {
   selectedField: string | null;
   saving: boolean;
   error: string | null;
+}
+
+// Chat interface types (for Path 5)
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+  proposed_changes?: UpdateResponse['proposed_changes'];
 }
