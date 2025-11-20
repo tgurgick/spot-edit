@@ -1,0 +1,42 @@
+January 15, 2024
+
+John Doe
+Senior Developer
+Acme Corporation
+123 Main Street
+Springfield, IL 62701
+
+Dear John Doe,
+
+RE: Software Development Proposal for Acme Corporation
+
+I hope this letter finds you well. I am writing to follow up on our recent conversation regarding the software development project for Acme Corporation.
+
+As discussed, TechServices Inc. is pleased to propose a comprehensive solution for your needs. We have carefully reviewed your requirements and believe we can deliver exceptional results.
+
+PROJECT OVERVIEW:
+The project will involve developing a custom web application tailored to Acme Corporation's specific needs. Our team of experienced developers will work closely with John Doe and your team to ensure the final product exceeds expectations.
+
+TIMELINE:
+We propose a 6-month development timeline, beginning on February 1, 2024 and completing by July 31, 2024.
+
+INVESTMENT:
+The total project cost is estimated at $75,000.00, with payment milestones as follows:
+- 30% ($22,500.00) upon project initiation
+- 40% ($30,000.00) at mid-project review
+- 30% ($22,500.00) upon successful completion
+
+NEXT STEPS:
+We would appreciate the opportunity to discuss this proposal with you in more detail. Please feel free to contact me at (555) 987-6543 or via email at contact@techservices.com to schedule a meeting.
+
+We look forward to the possibility of working with Acme Corporation and helping John Doe achieve your technology goals.
+
+Sincerely,
+
+Sarah Johnson
+Chief Executive Officer
+TechServices Inc.
+sarah.johnson@techservices.com
+(555) 987-6543
+
+cc: Project Management Team

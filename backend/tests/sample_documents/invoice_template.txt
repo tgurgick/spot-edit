@@ -1,0 +1,49 @@
+INVOICE
+
+Invoice Number: INV-2024-001
+Date: January 15, 2024
+Due Date: February 15, 2024
+
+BILL TO:
+John Doe
+Acme Corporation
+123 Main Street
+Springfield, IL 62701
+Email: john.doe@acmecorp.com
+
+FROM:
+TechServices Inc.
+456 Tech Boulevard
+San Francisco, CA 94102
+Phone: (555) 987-6543
+Tax ID: 12-3456789
+
+DESCRIPTION OF SERVICES:
+─────────────────────────────────────────────────────────────────
+Item                          Quantity    Rate        Amount
+─────────────────────────────────────────────────────────────────
+Software Development          40 hours    $150.00     $6,000.00
+Code Review                   10 hours    $125.00     $1,250.00
+Project Management            8 hours     $100.00     $800.00
+─────────────────────────────────────────────────────────────────
+                                          Subtotal:   $8,050.00
+                                          Tax (8%):   $644.00
+                                          TOTAL:      $8,694.00
+─────────────────────────────────────────────────────────────────
+
+PAYMENT INFORMATION:
+Please make payment to:
+Bank: First National Bank
+Account Name: TechServices Inc.
+Account Number: 123456789
+Routing Number: 987654321
+
+Or pay online at: www.techservices.com/pay
+
+Payment is due by February 15, 2024. Late payments will incur a 5% monthly interest charge.
+
+Thank you for your business!
+
+For questions regarding this invoice, please contact:
+accounting@techservices.com
+(555) 987-6543
