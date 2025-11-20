@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios';
+import axios, { type AxiosError } from 'axios';
 import type {
   UploadDocumentResponse,
   SaveTemplateRequest,
@@ -8,6 +8,7 @@ import type {
   UpdateTemplateRequest,
   UpdateTemplateResponse,
   ErrorResponse,
+  UpdateResponse,
 } from '../types';
 
 // Get base URL from environment variable or use default
@@ -125,6 +126,24 @@ export async function updateTemplate(
 }
 
 /**
+ * Apply proposed changes to a template
+ */
+export async function applyChanges(
+  id: string,
+  changes: UpdateResponse['proposed_changes']
+): Promise<GetTemplateResponse> {
+  try {
+    const response = await apiClient.post<GetTemplateResponse>(
+      `/templates/${id}/apply`,
+      { changes }
+    );
+    return response.data;
+  } catch (error) {
+    return handleError(error as AxiosError<ErrorResponse>);
+  }
+}
+
+/**
  * Download updated document
  */
 export async function downloadTemplate(id: string): Promise<Blob> {
@@ -145,5 +164,6 @@ export default {
   getTemplate,
   deleteTemplate,
   updateTemplate,
+  applyChanges,
   downloadTemplate,
 };
