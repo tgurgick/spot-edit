@@ -11,7 +11,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, Dict, Any
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from ..models.schema import (
     Template,
@@ -53,7 +53,7 @@ class TemplateStore:
         """Create storage directory if it doesn't exist."""
         self.storage_path.mkdir(parents=True, exist_ok=True)
 
-    def _get_template_file_path(self, template_id: UUID) -> Path:
+    def _get_template_file_path(self, template_id: str) -> Path:
         """Get the file path for a template."""
         return self.storage_path / f"{template_id}.json"
 
@@ -65,20 +65,12 @@ class TemplateStore:
             template: Template object to convert
 
         Returns:
-            Dictionary representation with serialized UUIDs and datetimes
+            Dictionary representation with serialized datetimes
         """
         data = template.model_dump(mode='json')
-        # Ensure UUIDs and datetimes are strings
-        data['id'] = str(template.id)
+        # Ensure datetimes are strings (IDs are already strings)
         data['created_at'] = template.created_at.isoformat()
         data['updated_at'] = template.updated_at.isoformat()
-        data['fields'] = [
-            {
-                **field.model_dump(mode='json'),
-                'id': str(field.id)
-            }
-            for field in template.fields
-        ]
         return data
 
     def _dict_to_template(self, data: Dict[str, Any]) -> Template:
@@ -99,7 +91,7 @@ class TemplateStore:
         fields: List[FieldModel],
         name: str,
         metadata: Optional[Dict[str, Any]] = None
-    ) -> UUID:
+    ) -> str:
         """
         Save a new template to storage.
 
@@ -110,15 +102,14 @@ class TemplateStore:
             metadata: Additional metadata (optional)
 
         Returns:
-            UUID of the created template
+            String ID of the created template
 
         Raises:
             TemplateStoreError: If saving fails
         """
         try:
-            # Create template object
+            # Create template object (ID generated automatically)
             template = Template(
-                id=uuid4(),
                 name=name,
                 created_at=datetime.utcnow(),
                 updated_at=datetime.utcnow(),
@@ -139,7 +130,7 @@ class TemplateStore:
         except Exception as e:
             raise TemplateStoreError(f"Failed to save template: {str(e)}") from e
 
-    def load_template(self, template_id: UUID) -> Template:
+    def load_template(self, template_id: str) -> Template:
         """
         Load a template from storage.
 
@@ -209,7 +200,7 @@ class TemplateStore:
 
     def update_template(
         self,
-        template_id: UUID,
+        template_id: str,
         updates: TemplateUpdateRequest
     ) -> Template:
         """
@@ -260,7 +251,7 @@ class TemplateStore:
                 f"Failed to update template {template_id}: {str(e)}"
             ) from e
 
-    def delete_template(self, template_id: UUID) -> bool:
+    def delete_template(self, template_id: str) -> bool:
         """
         Delete a template from storage.
 
@@ -290,7 +281,7 @@ class TemplateStore:
                 f"Failed to delete template {template_id}: {str(e)}"
             ) from e
 
-    def template_exists(self, template_id: UUID) -> bool:
+    def template_exists(self, template_id: str) -> bool:
         """
         Check if a template exists.
 

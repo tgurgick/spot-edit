@@ -10,7 +10,7 @@ import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Dict, Any, BinaryIO, Union
-from uuid import UUID, uuid4
+from uuid import uuid4
 import json
 
 
@@ -52,17 +52,17 @@ class DocumentStore:
         """Create storage directory if it doesn't exist."""
         self.storage_path.mkdir(parents=True, exist_ok=True)
 
-    def _get_document_path(self, file_id: UUID) -> Path:
+    def _get_document_path(self, file_id: str) -> Path:
         """Get the file path for a document."""
-        return self.storage_path / str(file_id)
+        return self.storage_path / file_id
 
-    def _get_metadata_path(self, file_id: UUID) -> Path:
+    def _get_metadata_path(self, file_id: str) -> Path:
         """Get the metadata file path for a document."""
         return self.storage_path / f"{file_id}.meta.json"
 
     def _save_metadata(
         self,
-        file_id: UUID,
+        file_id: str,
         filename: str,
         content_type: str,
         size: int
@@ -71,13 +71,13 @@ class DocumentStore:
         Save metadata for an uploaded document.
 
         Args:
-            file_id: UUID of the uploaded file
+            file_id: String ID of the uploaded file
             filename: Original filename
             content_type: MIME type of the file
             size: File size in bytes
         """
         metadata = {
-            "file_id": str(file_id),
+            "file_id": file_id,
             "filename": filename,
             "content_type": content_type,
             "size": size,
@@ -88,12 +88,12 @@ class DocumentStore:
         with open(metadata_path, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, indent=2)
 
-    def _load_metadata(self, file_id: UUID) -> Dict[str, Any]:
+    def _load_metadata(self, file_id: str) -> Dict[str, Any]:
         """
         Load metadata for a document.
 
         Args:
-            file_id: UUID of the file
+            file_id: String ID of the file
 
         Returns:
             Metadata dictionary
@@ -116,7 +116,7 @@ class DocumentStore:
         file_data: Union[bytes, BinaryIO],
         filename: str,
         content_type: str = "application/octet-stream"
-    ) -> UUID:
+    ) -> str:
         """
         Save an uploaded file to storage.
 
@@ -126,13 +126,13 @@ class DocumentStore:
             content_type: MIME type of the file
 
         Returns:
-            UUID of the saved file
+            String ID of the saved file
 
         Raises:
             DocumentStoreError: If saving fails
         """
         try:
-            file_id = uuid4()
+            file_id = str(uuid4())
             file_path = self._get_document_path(file_id)
 
             # Save file content
@@ -159,12 +159,12 @@ class DocumentStore:
                 f"Failed to save upload: {str(e)}"
             ) from e
 
-    def get_upload(self, file_id: UUID) -> bytes:
+    def get_upload(self, file_id: str) -> bytes:
         """
         Retrieve an uploaded file's content.
 
         Args:
-            file_id: UUID of the file to retrieve
+            file_id: String ID of the file to retrieve
 
         Returns:
             File content as bytes
@@ -189,12 +189,12 @@ class DocumentStore:
                 f"Failed to read document {file_id}: {str(e)}"
             ) from e
 
-    def get_upload_metadata(self, file_id: UUID) -> Dict[str, Any]:
+    def get_upload_metadata(self, file_id: str) -> Dict[str, Any]:
         """
         Get metadata for an uploaded file.
 
         Args:
-            file_id: UUID of the file
+            file_id: String ID of the file
 
         Returns:
             Metadata dictionary with filename, content_type, size, uploaded_at
@@ -204,12 +204,12 @@ class DocumentStore:
         """
         return self._load_metadata(file_id)
 
-    def delete_upload(self, file_id: UUID) -> bool:
+    def delete_upload(self, file_id: str) -> bool:
         """
         Delete an uploaded file and its metadata.
 
         Args:
-            file_id: UUID of the file to delete
+            file_id: String ID of the file to delete
 
         Returns:
             True if deletion was successful
@@ -242,12 +242,12 @@ class DocumentStore:
                 f"Failed to delete document {file_id}: {str(e)}"
             ) from e
 
-    def _cleanup_file(self, file_id: UUID) -> None:
+    def _cleanup_file(self, file_id: str) -> None:
         """
         Cleanup a file and its metadata (no error if doesn't exist).
 
         Args:
-            file_id: UUID of the file to cleanup
+            file_id: String ID of the file to cleanup
         """
         try:
             file_path = self._get_document_path(file_id)
@@ -262,12 +262,12 @@ class DocumentStore:
             # Silently ignore cleanup errors
             pass
 
-    def upload_exists(self, file_id: UUID) -> bool:
+    def upload_exists(self, file_id: str) -> bool:
         """
         Check if an uploaded file exists.
 
         Args:
-            file_id: UUID of the file to check
+            file_id: String ID of the file to check
 
         Returns:
             True if file exists, False otherwise
@@ -298,7 +298,7 @@ class DocumentStore:
                     uploaded_at = datetime.fromisoformat(metadata['uploaded_at'])
 
                     if uploaded_at < cutoff_time:
-                        file_id = UUID(metadata['file_id'])
+                        file_id = metadata['file_id']
                         self._cleanup_file(file_id)
                         deleted_count += 1
 

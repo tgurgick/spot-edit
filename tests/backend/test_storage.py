@@ -8,11 +8,12 @@ import tempfile
 import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from backend.src.models.schema import (
     Template,
-    FieldModel,
+    Field,
+    FieldModel,  # Alias
     FieldType,
     Position,
     TemplateUpdateRequest,
@@ -48,15 +49,15 @@ class TestTemplateStore:
     def sample_fields(self):
         """Create sample fields for testing."""
         return [
-            FieldModel(
+            Field(
                 name="recipient_name",
-                field_type=FieldType.TEXT,
+                type="text",
                 positions=[Position(page=1, start=100, end=120)],
                 current_value="John Doe"
             ),
-            FieldModel(
+            Field(
                 name="date",
-                field_type=FieldType.DATE,
+                type="date",
                 positions=[Position(page=1, start=150, end=160)],
                 current_value="2024-01-15"
             ),
@@ -71,7 +72,7 @@ class TestTemplateStore:
             metadata={"file_type": "pdf"}
         )
 
-        assert isinstance(template_id, UUID)
+        assert isinstance(template_id, str)
         assert template_store.template_exists(template_id)
 
     def test_load_template(self, template_store, sample_fields):
@@ -94,7 +95,7 @@ class TestTemplateStore:
 
     def test_load_nonexistent_template(self, template_store):
         """Test loading a template that doesn't exist."""
-        fake_id = uuid4()
+        fake_id = str(uuid4())
         with pytest.raises(TemplateNotFoundError):
             template_store.load_template(fake_id)
 
@@ -185,7 +186,7 @@ class TestTemplateStore:
 
     def test_update_nonexistent_template(self, template_store):
         """Test updating a template that doesn't exist."""
-        fake_id = uuid4()
+        fake_id = str(uuid4())
         updates = TemplateUpdateRequest(name="New Name")
 
         with pytest.raises(TemplateNotFoundError):
@@ -216,7 +217,7 @@ class TestTemplateStore:
 
     def test_delete_nonexistent_template(self, template_store):
         """Test deleting a template that doesn't exist."""
-        fake_id = uuid4()
+        fake_id = str(uuid4())
         with pytest.raises(TemplateNotFoundError):
             template_store.delete_template(fake_id)
 
@@ -283,7 +284,7 @@ class TestDocumentStore:
             content_type="text/plain"
         )
 
-        assert isinstance(file_id, UUID)
+        assert isinstance(file_id, str)
         assert document_store.upload_exists(file_id)
 
     def test_save_upload_file_object(self, document_store, temp_dir):
@@ -320,7 +321,7 @@ class TestDocumentStore:
 
     def test_get_nonexistent_upload(self, document_store):
         """Test retrieving a file that doesn't exist."""
-        fake_id = uuid4()
+        fake_id = str(uuid4())
         with pytest.raises(DocumentNotFoundError):
             document_store.get_upload(fake_id)
 
@@ -365,7 +366,7 @@ class TestDocumentStore:
 
     def test_delete_nonexistent_upload(self, document_store):
         """Test deleting a file that doesn't exist."""
-        fake_id = uuid4()
+        fake_id = str(uuid4())
         with pytest.raises(DocumentNotFoundError):
             document_store.delete_upload(fake_id)
 
@@ -474,27 +475,27 @@ class TestPositionValidation:
 
 
 class TestFieldModel:
-    """Tests for FieldModel."""
+    """Tests for FieldModel (Field)."""
 
     def test_create_field(self):
         """Test creating a field model."""
-        field = FieldModel(
+        field = Field(
             name="test_field",
-            field_type=FieldType.TEXT,
+            type="text",
             positions=[Position(page=1, start=0, end=10)],
             current_value="Test Value"
         )
 
         assert field.name == "test_field"
-        assert field.field_type == FieldType.TEXT
+        assert field.type == "text"
         assert len(field.positions) == 1
         assert field.current_value == "Test Value"
 
     def test_field_with_multiple_positions(self):
         """Test field with multiple positions."""
-        field = FieldModel(
+        field = Field(
             name="multi_pos",
-            field_type=FieldType.TEXT,
+            type="text",
             positions=[
                 Position(page=1, start=0, end=10),
                 Position(page=2, start=50, end=60),
@@ -505,20 +506,12 @@ class TestFieldModel:
 
     def test_field_types(self):
         """Test all field types."""
-        field_types = [
-            FieldType.TEXT,
-            FieldType.NUMBER,
-            FieldType.DATE,
-            FieldType.EMAIL,
-            FieldType.PHONE,
-            FieldType.ADDRESS,
-            FieldType.CUSTOM,
-        ]
+        field_types = ["text", "number", "date", "email", "phone", "address", "custom"]
 
         for ft in field_types:
-            field = FieldModel(
+            field = Field(
                 name="test",
-                field_type=ft,
+                type=ft,
                 positions=[Position(page=1, start=0, end=10)]
             )
-            assert field.field_type == ft
+            assert field.type == ft

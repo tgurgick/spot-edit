@@ -1,0 +1,45 @@
+APPLICATION FORM
+
+PERSONAL INFORMATION
+────────────────────
+Full Name: John Doe
+Date of Birth: March 15, 1990
+Social Security Number: XXX-XX-1234
+Email Address: john.doe@email.com
+Phone Number: (555) 123-4567
+
+CURRENT ADDRESS
+──────────────
+Street Address: 123 Main Street
+City: Springfield
+State: IL
+ZIP Code: 62701
+Country: United States
+
+EMPLOYMENT INFORMATION
+─────────────────────
+Current Employer: Acme Corporation
+Job Title: Senior Developer
+Start Date: January 1, 2020
+Annual Salary: $95,000
+Supervisor Name: Jane Smith
+Supervisor Phone: (555) 234-5678
+
+EMERGENCY CONTACT
+────────────────
+Contact Name: Jane Doe
+Relationship: Spouse
+Phone Number: (555) 987-6543
+Email: jane.doe@email.com
+
+ADDITIONAL INFORMATION
+─────────────────────
+Preferred Start Date: February 1, 2024
+Desired Salary: $105,000
+Available for Relocation: No
+Willing to Travel: Yes
+
+I certify that the information provided above is true and accurate to the best of my knowledge.
+
+Signature: _________________________ Date: January 15, 2024
+          John Doe
