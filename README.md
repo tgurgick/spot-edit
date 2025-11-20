@@ -1,139 +1,68 @@
 # Spot Edit
 
-An AI-powered document editor that enables intelligent, context-aware editing through natural language commands and collaborative AI assistance.
+A simple, lean AI-powered document editing tool that identifies and updates key fields in documents through natural language chat. Save document templates once, reuse them repeatedly.
 
 ## Overview
 
-Spot Edit is a next-generation document editor that seamlessly integrates artificial intelligence into the writing and editing workflow. Rather than replacing human creativity, it augments the writing process with intelligent suggestions, automated formatting, and context-aware transformations.
+Spot Edit is a focused document editing assistant built around a straightforward workflow: upload a document, confirm the fields AI detects, save it as a template, then reuse it anytime by telling the AI what needs to change in plain English. The approach is designed to be simple, repeatable, and effective.
 
-## Core Features
+## Core Concept
 
-### AI-Powered Editing
-- **Natural Language Commands**: Edit documents using plain English instructions (e.g., "make this paragraph more concise" or "rewrite this section in a professional tone")
-- **Context-Aware Suggestions**: Real-time suggestions based on document context, writing style, and intent
-- **Smart Transformations**: Instantly transform content between formats, styles, and tones
-- **Intelligent Summarization**: Generate summaries, outlines, and key points from long-form content
+The project centers on four key principles:
 
-### Collaborative Editing
-- **Multi-User Support**: Real-time collaboration with multiple editors
-- **AI as Collaborator**: Treat AI as a team member that can be assigned editing tasks
-- **Version Control**: Track changes and easily revert to previous versions
-- **Comment & Annotation**: Add contextual comments and AI-powered responses
+1. **Simple & Lean**: Minimal interface, maximum utility. No bloat, just effective document editing.
+2. **Smart Field Detection**: Upload any document (with automatic text conversion if needed), and the AI identifies key fields and areas that need updating.
+3. **Human-in-the-Loop**: You confirm which fields the AI detects before they become editable—ensuring accuracy and control.
+4. **Template Reuse**: Save documents with their field mappings once, then reuse them repeatedly with natural language updates.
 
-### Document Intelligence
-- **Semantic Understanding**: Deep comprehension of document structure and meaning
-- **Cross-Reference Management**: Automatically maintain consistency across sections
-- **Citation & Research**: Assist with citations, fact-checking, and research integration
-- **Style Consistency**: Enforce style guides and maintain consistent voice
+## How It Works
 
-### Spot-Specific Features
-- **Spot Targeting**: Select specific "spots" in your document for focused AI intervention
-- **Spot History**: Track all changes made to specific sections over time
-- **Spot Templates**: Create reusable templates for common editing patterns
-- **Spot Suggestions**: AI recommends areas of the document that could benefit from revision
+### Initial Document Setup
+1. **Upload Document**: Drop your document into the chat window (supports various formats with automatic text conversion)
+2. **AI Field Detection**: The AI automatically analyzes the document and identifies key editable fields (names, dates, prices, company info, etc.)
+3. **Confirm Fields (HITL)**: Review and confirm which fields the AI found are the ones you want to make editable—this human-in-the-loop step ensures accuracy
+4. **Save Template**: Once confirmed, the document and its identified variable fields are saved for future reuse
 
-## Technical Architecture
+### Making Updates
+1. **Load Saved Document**: Pull up any previously saved document template
+2. **Tell the Agent**: Describe your changes in natural language (e.g., "update the contract date to March 15, 2024" or "change client name to Acme Corp")
+3. **AI Updates Fields**: The agent intelligently updates the confirmed fields throughout the document
+4. **Download**: Export your updated document with all changes applied
 
-### Frontend
-- **Editor Engine**: Custom editor built on a modern rich-text framework
-- **Real-Time Sync**: WebSocket-based collaborative editing
-- **Responsive Design**: Works seamlessly across desktop, tablet, and mobile
-- **Offline Support**: Continue working without internet connection
+## Key Features
 
-### AI Integration
-- **LLM Backend**: Integration with state-of-the-art language models
-- **Prompt Engineering**: Optimized prompts for various editing tasks
-- **Context Management**: Efficient handling of document context within token limits
-- **Caching Strategy**: Smart caching to reduce latency and costs
+- **Document Upload & Conversion**: Accept various document formats, automatically convert to text for processing
+- **AI-Powered Field Detection**: Automatically identifies key editable fields (names, dates, prices, addresses, etc.)
+- **Human-in-the-Loop Confirmation**: Review and confirm AI-detected fields before saving—you stay in control
+- **Document Templates & Storage**: Save documents with their confirmed field mappings for easy reuse
+- **Natural Language Commands**: No complex syntax—just tell the agent what you want in plain English
+- **Multi-Field Updates**: Update multiple related fields across the document in one operation
+- **Template Library**: Access and reuse your saved document templates anytime
+- **Export & Download**: Get your updated documents in the original format
 
-### Backend Services
-- **Document Storage**: Scalable storage with versioning support
-- **Authentication**: Secure user authentication and authorization
-- **API Gateway**: RESTful and GraphQL APIs for client interaction
-- **Processing Queue**: Asynchronous handling of AI requests
+## Design Philosophy
 
-### Data Privacy
-- **Encryption**: End-to-end encryption for sensitive documents
-- **Privacy Modes**: Options for local-only processing
-- **Data Retention**: Configurable data retention policies
-- **Compliance**: GDPR and data protection compliance
+- **Simplicity First**: Every feature must earn its place. If it doesn't directly serve the core workflow, it doesn't belong.
+- **Reliable & Repeatable**: The same input should produce predictable, consistent results.
+- **Focused Scope**: Do one thing exceptionally well—AI-assisted document field updates.
 
 ## Use Cases
 
-### Content Creation
-- Blog posts and articles
-- Technical documentation
-- Creative writing
-- Marketing copy
+- **Contract Management**: Upload a contract template once, then quickly generate new versions by updating client names, dates, and terms
+- **Invoice Generation**: Save an invoice template and update amounts, dates, and client details for each new invoice
+- **Proposal Customization**: Maintain proposal templates and customize company names, project details, and pricing per client
+- **Form Processing**: Identify form fields once, then rapidly fill different versions with updated information
+- **Report Updates**: Save report templates and update key metrics, dates, and data points as needed
+- **Document Localization**: Update addresses, currencies, and region-specific information across document sets
 
-### Professional Writing
-- Business reports
-- Research papers
-- Legal documents
-- Grant proposals
+## Technology Approach
 
-### Education
-- Essay writing assistance
-- Learning through AI feedback
-- Language learning support
-- Academic editing
-
-### Technical Documentation
-- API documentation
-- User guides
-- Internal knowledge bases
-- Technical specifications
-
-## User Experience
-
-### Simple Workflow
-1. **Write**: Create content naturally
-2. **Spot**: Highlight areas for AI assistance
-3. **Command**: Tell the AI what you want
-4. **Review**: Accept, modify, or reject suggestions
-5. **Iterate**: Continue refining with AI collaboration
-
-### Interface Design
-- **Minimal Distraction**: Clean interface that stays out of the way
-- **Contextual Tools**: AI features appear when needed
-- **Keyboard-First**: Extensive keyboard shortcuts for power users
-- **Visual Feedback**: Clear indication of AI-modified content
-
-## Roadmap
-
-### Phase 1: MVP
-- Basic document editor with formatting
-- Simple AI command interface
-- Single-user editing
-- Core spot-targeting functionality
-
-### Phase 2: Collaboration
-- Real-time multi-user editing
-- Comment and annotation system
-- Version history and rollback
-- Team workspaces
-
-### Phase 3: Advanced AI
-- Custom AI models and fine-tuning
-- Specialized editing modes (technical, creative, academic)
-- Advanced context awareness
-- Learning from user preferences
-
-### Phase 4: Platform
-- Plugin architecture
-- Third-party integrations
-- API for developers
-- Mobile applications
-
-## Technology Stack
-
-### Proposed Technologies
-- **Frontend**: React/TypeScript, ProseMirror or Slate for editing
-- **Backend**: Node.js or Python (FastAPI)
-- **Database**: PostgreSQL with versioning support
-- **AI**: OpenAI API, Anthropic Claude, or custom models
-- **Real-time**: WebSockets (Socket.io or native)
-- **Deployment**: Docker, Kubernetes for scaling
+The technical stack will be chosen to support the core goals of simplicity and repeatability:
+- Lightweight document parsing and text extraction
+- LLM integration for natural language understanding and field identification
+- Simple storage system for document templates and field mappings
+- Intuitive UI for document upload, field confirmation, and chat interaction
+- Minimal dependencies, maximum reliability
 
 ## Getting Started
 
