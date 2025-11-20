@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import DocumentPreview from '../components/DocumentPreview';
+import { DocumentPreview } from '../components/DocumentPreview';
 import type { Field } from '../types';
 
 const mockDocumentText = 'This is a test document with Acme Corp on 2024-01-01.';

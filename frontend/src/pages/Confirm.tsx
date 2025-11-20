@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import FieldConfirmation from '../components/FieldConfirmation';
-import DocumentPreview from '../components/DocumentPreview';
+import { DocumentPreview } from '../components/DocumentPreview';
 import { saveTemplate } from '../api/client';
 import type { Field } from '../types';
 

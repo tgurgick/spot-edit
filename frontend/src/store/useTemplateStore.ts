@@ -1,10 +1,10 @@
 import { create } from 'zustand';
-import type { Template, TemplateMetadata, ChatMessage } from '../types';
-import { apiClient } from '../api/client';
+import type { Template, ChatMessage, GetTemplatesResponse, GetTemplateResponse } from '../types';
+import * as api from '../api/client';
 
 interface TemplateStore {
   // Template list state
-  templates: TemplateMetadata[];
+  templates: Template[];
   isLoadingTemplates: boolean;
   templatesError: string | null;
 
@@ -51,8 +51,8 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
   fetchTemplates: async () => {
     set({ isLoadingTemplates: true, templatesError: null });
     try {
-      const templates = await apiClient.getTemplates();
-      set({ templates, isLoadingTemplates: false });
+      const response: GetTemplatesResponse = await api.getTemplates();
+      set({ templates: response.templates, isLoadingTemplates: false });
     } catch (error) {
       set({
         templatesError: error instanceof Error ? error.message : 'Failed to fetch templates',
@@ -63,7 +63,7 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
 
   deleteTemplate: async (id: string) => {
     try {
-      await apiClient.deleteTemplate(id);
+      await api.deleteTemplate(id);
       set((state) => ({
         templates: state.templates.filter((t) => t.id !== id),
       }));
@@ -87,8 +87,8 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
   loadTemplate: async (id: string) => {
     set({ isLoadingTemplate: true, templateError: null });
     try {
-      const template = await apiClient.getTemplate(id);
-      set({ currentTemplate: template, isLoadingTemplate: false });
+      const response: GetTemplateResponse = await api.getTemplate(id);
+      set({ currentTemplate: response.template, isLoadingTemplate: false });
     } catch (error) {
       set({
         templateError: error instanceof Error ? error.message : 'Failed to load template',
@@ -130,21 +130,17 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
 
     set({ isSendingMessage: true, chatError: null });
     try {
-      const response = await apiClient.updateTemplate(currentTemplate.id, command);
+      const response = await api.updateTemplate(currentTemplate.id, { command });
 
-      if (response.success && response.proposed_changes) {
-        // Add assistant message with proposed changes
-        addMessage({
-          role: 'assistant',
-          content: `I found ${response.proposed_changes.length} field(s) to update. Please review the changes below.`,
-          proposed_changes: response.proposed_changes,
-        });
-      } else if (response.error) {
-        addMessage({
-          role: 'assistant',
-          content: `Sorry, I couldn't process that request: ${response.error}`,
-        });
-      }
+      // Note: The actual API returns UpdateTemplateResponse, not UpdateResponse
+      // We're showing the updates happened
+      addMessage({
+        role: 'assistant',
+        content: `Updated fields: ${response.fieldsChanged.join(', ')}`,
+      });
+
+      // Reload the template to get the updated version
+      await get().loadTemplate(currentTemplate.id);
 
       set({ isSendingMessage: false });
     } catch (error) {
@@ -167,8 +163,8 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
 
     set({ isSendingMessage: true, chatError: null });
     try {
-      const updatedTemplate = await apiClient.applyChanges(currentTemplate.id, changes);
-      set({ currentTemplate: updatedTemplate, isSendingMessage: false });
+      const response: GetTemplateResponse = await api.applyChanges(currentTemplate.id, changes);
+      set({ currentTemplate: response.template, isSendingMessage: false });
 
       addMessage({
         role: 'assistant',

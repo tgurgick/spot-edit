@@ -1,86 +1,108 @@
 import { useMemo } from 'react';
-import type { Template, Field } from '../types';
+import type { Template, Field, FieldPosition } from '../types';
 
-interface DocumentPreviewProps {
-  template: Template;
-  highlightFields?: boolean;
+// Support both Path 4 (confirm page) and Path 5 (edit page) use cases
+interface DocumentPreviewPropsPath4 {
+  documentText: string;
+  fields: Field[];
+  selectedFieldId?: string | null;
+  template?: never;
+  highlightFields?: never;
 }
 
-export function DocumentPreview({ template, highlightFields = true }: DocumentPreviewProps) {
-  // Create a map of positions to fields for efficient lookup
-  const positionMap = useMemo(() => {
-    const map = new Map<number, Field>();
-    template.fields.forEach((field) => {
-      field.positions.forEach(([start, end]) => {
-        for (let i = start; i < end; i++) {
-          map.set(i, field);
-        }
-      });
-    });
-    return map;
-  }, [template.fields]);
+interface DocumentPreviewPropsPath5 {
+  template: Template;
+  highlightFields?: boolean;
+  documentText?: never;
+  fields?: never;
+  selectedFieldId?: never;
+}
 
-  // Generate highlighted document text
-  const renderDocument = () => {
-    if (!highlightFields) {
-      return <pre className="whitespace-pre-wrap font-mono text-sm">{template.document_text}</pre>;
+type DocumentPreviewProps = DocumentPreviewPropsPath4 | DocumentPreviewPropsPath5;
+
+interface TextSegment {
+  text: string;
+  fieldId?: string;
+  fieldName?: string;
+  isHighlighted?: boolean;
+}
+
+export function DocumentPreview(props: DocumentPreviewProps) {
+  // Normalize props to work with both interfaces
+  const documentText = props.template ? props.template.documentText : props.documentText!;
+  const fields = props.template ? props.template.fields : props.fields!;
+  const selectedFieldId = props.selectedFieldId;
+  const highlightFields = 'highlightFields' in props ? props.highlightFields : true;
+
+  // Generate color for field based on its ID (consistent colors for Path 4)
+  const getFieldColor = (fieldId: string, isSelected: boolean) => {
+    if (isSelected) {
+      return 'bg-blue-300 border-blue-500';
     }
 
-    const segments: React.ReactElement[] = [];
-    let currentField: Field | null = null;
-    let currentSegment = '';
-    let currentStart = 0;
+    const hash = fieldId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const colors = [
+      'bg-yellow-200 border-yellow-400',
+      'bg-green-200 border-green-400',
+      'bg-purple-200 border-purple-400',
+      'bg-pink-200 border-pink-400',
+      'bg-indigo-200 border-indigo-400',
+      'bg-orange-200 border-orange-400',
+    ];
+    return colors[hash % colors.length];
+  };
 
-    for (let i = 0; i < template.document_text.length; i++) {
-      const char = template.document_text[i];
-      const field = positionMap.get(i);
+  // Build segments for rendering
+  const segments = useMemo<TextSegment[]>(() => {
+    if (!documentText || !highlightFields) {
+      return [{ text: documentText || '' }];
+    }
 
-      if (field !== currentField) {
-        // Push the current segment
-        if (currentSegment) {
-          segments.push(
-            currentField ? (
-              <mark
-                key={`${currentStart}-${i}`}
-                className="bg-yellow-200 px-1 rounded"
-                title={`${currentField.name}: ${currentField.current_value}`}
-              >
-                {currentSegment}
-              </mark>
-            ) : (
-              <span key={`${currentStart}-${i}`}>{currentSegment}</span>
-            )
-          );
+    const result: TextSegment[] = [];
+    const positionMap = new Map<number, { field: Field; position: FieldPosition }>();
+
+    // Build position map
+    fields.forEach((field) => {
+      if (field.confirmed) {
+        field.positions.forEach((pos) => {
+          for (let i = pos.start; i < pos.end; i++) {
+            positionMap.set(i, { field, position: pos });
+          }
+        });
+      }
+    });
+
+    let currentSegment: TextSegment = { text: '' };
+    let currentFieldId: string | undefined = undefined;
+
+    for (let i = 0; i < documentText.length; i++) {
+      const char = documentText[i];
+      const fieldInfo = positionMap.get(i);
+      const thisFieldId = fieldInfo?.field.id;
+
+      if (thisFieldId !== currentFieldId) {
+        if (currentSegment.text) {
+          result.push(currentSegment);
         }
 
-        // Start new segment
-        currentField = field || null;
-        currentSegment = char;
-        currentStart = i;
+        currentFieldId = thisFieldId;
+        currentSegment = {
+          text: char,
+          fieldId: thisFieldId,
+          fieldName: fieldInfo?.field.name,
+          isHighlighted: !!fieldInfo && fieldInfo.field.id === selectedFieldId,
+        };
       } else {
-        currentSegment += char;
+        currentSegment.text += char;
       }
     }
 
-    // Push the last segment
-    if (currentSegment) {
-      segments.push(
-        currentField ? (
-          <mark
-            key={`${currentStart}-${template.document_text.length}`}
-            className="bg-yellow-200 px-1 rounded"
-            title={`${currentField.name}: ${currentField.current_value}`}
-          >
-            {currentSegment}
-          </mark>
-        ) : (
-          <span key={`${currentStart}-${template.document_text.length}`}>{currentSegment}</span>
-        )
-      );
+    if (currentSegment.text) {
+      result.push(currentSegment);
     }
 
-    return <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">{segments}</pre>;
-  };
+    return result;
+  }, [documentText, fields, selectedFieldId, highlightFields]);
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-full flex flex-col">
@@ -92,21 +114,37 @@ export function DocumentPreview({ template, highlightFields = true }: DocumentPr
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 py-4">
-        {renderDocument()}
+        <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
+          {segments.map((segment, idx) => {
+            if (segment.fieldId) {
+              const colorClass = getFieldColor(segment.fieldId, !!segment.isHighlighted);
+              return (
+                <mark
+                  key={idx}
+                  className={`px-1 rounded border ${colorClass}`}
+                  title={`${segment.fieldName}: ${segment.fieldId}`}
+                >
+                  {segment.text}
+                </mark>
+              );
+            }
+            return <span key={idx}>{segment.text}</span>;
+          })}
+        </pre>
       </div>
 
       {/* Field legend */}
-      {highlightFields && template.fields.length > 0 && (
+      {highlightFields && fields.length > 0 && (
         <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
           <h3 className="text-sm font-semibold text-gray-900 mb-2">Fields:</h3>
           <div className="flex flex-wrap gap-2">
-            {template.fields.map((field) => (
+            {fields.filter(f => f.confirmed).map((field) => (
               <div
                 key={field.id}
                 className="inline-flex items-center px-3 py-1 bg-yellow-100 border border-yellow-300 rounded-full text-xs"
               >
                 <span className="font-medium text-gray-900">{field.name}:</span>
-                <span className="ml-1 text-gray-700">{field.current_value}</span>
+                <span className="ml-1 text-gray-700">{field.currentValue}</span>
               </div>
             ))}
           </div>
@@ -115,3 +153,6 @@ export function DocumentPreview({ template, highlightFields = true }: DocumentPr
     </div>
   );
 }
+
+// Export as default for backward compatibility with Path 4
+export default DocumentPreview;

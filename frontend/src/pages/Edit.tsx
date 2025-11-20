@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTemplateStore } from '../store/useTemplateStore';
 import { ChatInterface } from '../components/ChatInterface';
 import { DocumentPreview } from '../components/DocumentPreview';
-import { apiClient } from '../api/client';
+import * as api from '../api/client';
 
 export function Edit() {
   const { id } = useParams<{ id: string }>();
@@ -36,7 +36,7 @@ export function Edit() {
 
     setIsDownloading(true);
     try {
-      const blob = await apiClient.downloadTemplate(currentTemplate.id);
+      const blob = await api.downloadTemplate(currentTemplate.id);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -152,7 +152,7 @@ export function Edit() {
               <h1 className="text-2xl font-bold text-gray-900">{currentTemplate.name}</h1>
               <p className="text-sm text-gray-600">
                 {currentTemplate.fields.length} fields •{' '}
-                {new Date(currentTemplate.created_at).toLocaleDateString()}
+                {new Date(currentTemplate.createdAt).toLocaleDateString()}
               </p>
             </div>
           </div>
