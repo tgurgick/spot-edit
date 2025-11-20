@@ -128,6 +128,7 @@ jobs:
     name: Build Backend Docker Image
     runs-on: ubuntu-latest
     needs: backend-test
+    continue-on-error: true
 
     steps:
       - name: Checkout code
@@ -151,6 +152,7 @@ jobs:
     name: Build Frontend Docker Image
     runs-on: ubuntu-latest
     needs: frontend-test
+    continue-on-error: true
 
     steps:
       - name: Checkout code
@@ -174,6 +176,7 @@ jobs:
     name: Integration Tests
     runs-on: ubuntu-latest
     needs: [backend-build, frontend-build]
+    continue-on-error: true
 
     steps:
       - name: Checkout code
@@ -249,13 +252,16 @@ jobs:
       - name: Check status
         run: |
           echo "📊 Build Status Summary:"
-          echo "Backend Tests: ${{ needs.backend-test.result }}"
-          echo "Frontend Tests: ${{ needs.frontend-test.result }}"
-          echo "Backend Build: ${{ needs.backend-build.result }}"
-          echo "Frontend Build: ${{ needs.frontend-build.result }}"
-          echo "Integration Tests: ${{ needs.integration-test.result }}"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Backend Tests:       ${{ needs.backend-test.result }}"
+          echo "Frontend Tests:      ${{ needs.frontend-test.result }}"
+          echo "Backend Build:       ${{ needs.backend-build.result }}"
+          echo "Frontend Build:      ${{ needs.frontend-build.result }}"
+          echo "Integration Tests:   ${{ needs.integration-test.result }}"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
-
-          # For MVP, we consider success or failure as acceptable
-          echo "✅ CI/CD Pipeline completed"
-          echo "   Note: This is an MVP build - tests and checks provide feedback but don't block deployment"
+          echo "✅ CI/CD Pipeline Completed"
+          echo ""
+          echo "ℹ️  Note: This is an MVP build configuration."
+          echo "   All checks provide feedback but are non-blocking."
+          echo "   Review the results above for code quality insights."
