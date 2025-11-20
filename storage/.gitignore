@@ -1,0 +1,8 @@
+# Ignore all template and upload data created during development/testing
+templates/*/
+uploads/*
+
+# Keep directory structure
+!.gitignore
+!templates/.gitkeep
+!uploads/.gitkeep
