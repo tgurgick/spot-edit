@@ -1,1 +1,1 @@
-"""Tests for Spot Edit backend."""
+"""Tests for Spot Edit backend services."""

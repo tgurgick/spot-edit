@@ -1,100 +1,212 @@
-"""Document parsing service for extracting text from various formats."""
-from pathlib import Path
-from typing import Union
+"""
+Document parsing service for extracting text from various file formats.
+
+Supports: .txt, .pdf, .docx files
+"""
+
 import io
+from typing import BinaryIO, Union
+from pathlib import Path
+
+try:
+    from PyPDF2 import PdfReader
+except ImportError:
+    PdfReader = None
+
+try:
+    from docx import Document
+except ImportError:
+    Document = None
 
 
-def parse_document(file_content: bytes, filename: str) -> str:
+class DocumentParsingError(Exception):
+    """Raised when document parsing fails."""
+    pass
+
+
+class UnsupportedFileTypeError(DocumentParsingError):
+    """Raised when file type is not supported."""
+    pass
+
+
+class DocumentParser:
     """
-    Parse document and extract text.
+    Service for parsing documents and extracting text content.
 
-    Args:
-        file_content: File content as bytes
-        filename: Original filename
-
-    Returns:
-        Extracted text from the document
-
-    Raises:
-        ValueError: If file format is not supported
+    Supports multiple file formats:
+    - Plain text (.txt)
+    - PDF (.pdf) - requires PyPDF2
+    - Microsoft Word (.docx) - requires python-docx
     """
-    file_extension = Path(filename).suffix.lower()
 
-    if file_extension == ".txt":
-        return extract_text_from_txt(file_content)
-    elif file_extension == ".pdf":
-        return extract_text_from_pdf(file_content)
-    elif file_extension in [".docx", ".doc"]:
-        return extract_text_from_docx(file_content)
-    else:
-        raise ValueError(f"Unsupported file format: {file_extension}")
+    SUPPORTED_EXTENSIONS = {'.txt', '.pdf', '.docx'}
 
+    @classmethod
+    def parse_document(cls, file: Union[BinaryIO, bytes], file_type: str) -> str:
+        """
+        Parse a document and extract its text content.
 
-def extract_text_from_txt(file_content: bytes) -> str:
-    """
-    Extract text from a plain text file.
+        Args:
+            file: File object or bytes to parse
+            file_type: File extension (e.g., 'txt', 'pdf', 'docx')
 
-    Args:
-        file_content: File content as bytes
+        Returns:
+            Extracted text content as a string
 
-    Returns:
-        Text content
-    """
-    try:
-        return file_content.decode("utf-8")
-    except UnicodeDecodeError:
-        # Try with latin-1 encoding as fallback
-        return file_content.decode("latin-1")
+        Raises:
+            UnsupportedFileTypeError: If file type is not supported
+            DocumentParsingError: If parsing fails
+        """
+        # Normalize file type
+        file_type = file_type.lower().lstrip('.')
 
+        if f'.{file_type}' not in cls.SUPPORTED_EXTENSIONS:
+            raise UnsupportedFileTypeError(
+                f"File type '.{file_type}' is not supported. "
+                f"Supported types: {', '.join(cls.SUPPORTED_EXTENSIONS)}"
+            )
 
-def extract_text_from_pdf(file_content: bytes) -> str:
-    """
-    Extract text from a PDF file.
+        # Convert bytes to file-like object if needed
+        if isinstance(file, bytes):
+            file = io.BytesIO(file)
 
-    Args:
-        file_content: File content as bytes
+        # Route to appropriate parser
+        try:
+            if file_type == 'txt':
+                return cls.extract_text_from_txt(file)
+            elif file_type == 'pdf':
+                return cls.extract_text_from_pdf(file)
+            elif file_type == 'docx':
+                return cls.extract_text_from_docx(file)
+            else:
+                raise UnsupportedFileTypeError(f"Unsupported file type: {file_type}")
+        except DocumentParsingError:
+            raise
+        except Exception as e:
+            raise DocumentParsingError(f"Failed to parse {file_type} document: {str(e)}") from e
 
-    Returns:
-        Extracted text
-    """
-    try:
-        import PyPDF2
-    except ImportError:
-        raise ImportError("PyPDF2 is required for PDF parsing. Install with: pip install PyPDF2")
+    @staticmethod
+    def extract_text_from_txt(file: BinaryIO) -> str:
+        """
+        Extract text from a plain text file.
 
-    pdf_file = io.BytesIO(file_content)
-    pdf_reader = PyPDF2.PdfReader(pdf_file)
+        Args:
+            file: File object to read
 
-    text_parts = []
-    for page in pdf_reader.pages:
-        text = page.extract_text()
-        if text:
-            text_parts.append(text)
+        Returns:
+            Text content
 
-    return "\n\n".join(text_parts)
+        Raises:
+            DocumentParsingError: If reading fails
+        """
+        try:
+            # Try UTF-8 first, fall back to latin-1 if that fails
+            content = file.read()
+            try:
+                return content.decode('utf-8')
+            except UnicodeDecodeError:
+                return content.decode('latin-1')
+        except Exception as e:
+            raise DocumentParsingError(f"Failed to read text file: {str(e)}") from e
 
+    @staticmethod
+    def extract_text_from_pdf(file: BinaryIO) -> str:
+        """
+        Extract text from a PDF file.
 
-def extract_text_from_docx(file_content: bytes) -> str:
-    """
-    Extract text from a DOCX file.
+        Args:
+            file: File object to read
 
-    Args:
-        file_content: File content as bytes
+        Returns:
+            Extracted text content
 
-    Returns:
-        Extracted text
-    """
-    try:
-        from docx import Document
-    except ImportError:
-        raise ImportError("python-docx is required for DOCX parsing. Install with: pip install python-docx")
+        Raises:
+            DocumentParsingError: If PDF reading fails or PyPDF2 is not installed
+        """
+        if PdfReader is None:
+            raise DocumentParsingError(
+                "PyPDF2 is not installed. Install it with: pip install PyPDF2"
+            )
 
-    docx_file = io.BytesIO(file_content)
-    doc = Document(docx_file)
+        try:
+            reader = PdfReader(file)
+            text_parts = []
 
-    text_parts = []
-    for paragraph in doc.paragraphs:
-        if paragraph.text.strip():
-            text_parts.append(paragraph.text)
+            for page in reader.pages:
+                text = page.extract_text()
+                if text:
+                    text_parts.append(text)
 
-    return "\n\n".join(text_parts)
+            if not text_parts:
+                return ""
+
+            return "\n\n".join(text_parts)
+        except Exception as e:
+            raise DocumentParsingError(f"Failed to read PDF file: {str(e)}") from e
+
+    @staticmethod
+    def extract_text_from_docx(file: BinaryIO) -> str:
+        """
+        Extract text from a Microsoft Word (.docx) file.
+
+        Args:
+            file: File object to read
+
+        Returns:
+            Extracted text content
+
+        Raises:
+            DocumentParsingError: If DOCX reading fails or python-docx is not installed
+        """
+        if Document is None:
+            raise DocumentParsingError(
+                "python-docx is not installed. Install it with: pip install python-docx"
+            )
+
+        try:
+            doc = Document(file)
+            text_parts = []
+
+            for paragraph in doc.paragraphs:
+                if paragraph.text.strip():
+                    text_parts.append(paragraph.text)
+
+            # Also extract text from tables
+            for table in doc.tables:
+                for row in table.rows:
+                    for cell in row.cells:
+                        if cell.text.strip():
+                            text_parts.append(cell.text)
+
+            if not text_parts:
+                return ""
+
+            return "\n\n".join(text_parts)
+        except Exception as e:
+            raise DocumentParsingError(f"Failed to read DOCX file: {str(e)}") from e
+
+    @classmethod
+    def parse_file_path(cls, file_path: Union[str, Path]) -> str:
+        """
+        Convenience method to parse a document from a file path.
+
+        Args:
+            file_path: Path to the file to parse
+
+        Returns:
+            Extracted text content
+
+        Raises:
+            FileNotFoundError: If file doesn't exist
+            UnsupportedFileTypeError: If file type is not supported
+            DocumentParsingError: If parsing fails
+        """
+        path = Path(file_path)
+
+        if not path.exists():
+            raise FileNotFoundError(f"File not found: {file_path}")
+
+        file_type = path.suffix.lstrip('.')
+
+        with open(path, 'rb') as f:
+            return cls.parse_document(f, file_type)

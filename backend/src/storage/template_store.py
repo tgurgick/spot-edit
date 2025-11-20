@@ -1,233 +1,324 @@
-"""Template storage using JSON file system."""
+"""
+Template storage implementation using JSON file storage.
+
+This module provides CRUD operations for template persistence using
+the file system with JSON format. Designed for MVP; can be replaced
+with database storage later.
+"""
+
 import json
 import os
-import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
+from uuid import uuid4
 
-from ..models.schema import Template, TemplateMetadata, Field
-
-
-# Storage directory
-STORAGE_DIR = Path(__file__).parent.parent.parent.parent / "storage" / "templates"
-
-
-def _ensure_storage_dir():
-    """Ensure storage directory exists."""
-    STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+from ..models.schema import (
+    Template,
+    TemplateCreateRequest,
+    TemplateUpdateRequest,
+    FieldModel
+)
 
 
-def _get_template_dir(template_id: str) -> Path:
-    """Get directory path for a template."""
-    return STORAGE_DIR / template_id
+class TemplateStoreError(Exception):
+    """Base exception for template storage errors."""
+    pass
 
 
-def save_template(document_text: str, fields: List[Field], name: str) -> str:
+class TemplateNotFoundError(TemplateStoreError):
+    """Raised when a template is not found."""
+    pass
+
+
+class TemplateStore:
     """
-    Save a new template.
+    Template storage manager using JSON file system.
 
-    Args:
-        document_text: The original document text
-        fields: List of detected fields
-        name: Template name
-
-    Returns:
-        template_id: Unique identifier for the template
+    Each template is stored as a separate JSON file in the templates directory.
+    File naming: {template_id}.json
     """
-    _ensure_storage_dir()
 
-    # Generate unique ID
-    template_id = str(uuid.uuid4())
-    template_dir = _get_template_dir(template_id)
-    template_dir.mkdir(parents=True, exist_ok=True)
+    def __init__(self, storage_path: str = "storage/templates"):
+        """
+        Initialize the template store.
 
-    # Create timestamp
-    now = datetime.now()
+        Args:
+            storage_path: Path to the templates storage directory
+        """
+        self.storage_path = Path(storage_path)
+        self._ensure_storage_exists()
 
-    # Save document text
-    document_path = template_dir / "document.txt"
-    document_path.write_text(document_text, encoding="utf-8")
+    def _ensure_storage_exists(self) -> None:
+        """Create storage directory if it doesn't exist."""
+        self.storage_path.mkdir(parents=True, exist_ok=True)
 
-    # Save fields
-    fields_path = template_dir / "fields.json"
-    fields_data = [field.model_dump() for field in fields]
-    fields_path.write_text(json.dumps(fields_data, indent=2), encoding="utf-8")
+    def _get_template_file_path(self, template_id: str) -> Path:
+        """Get the file path for a template."""
+        return self.storage_path / f"{template_id}.json"
 
-    # Save metadata
-    metadata_path = template_dir / "metadata.json"
-    metadata = {
-        "id": template_id,
-        "name": name,
-        "created_at": now.isoformat(),
-        "updated_at": now.isoformat(),
-        "field_count": len(fields),
-    }
-    metadata_path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+    def _template_to_dict(self, template: Template) -> Dict[str, Any]:
+        """
+        Convert a Template object to a JSON-serializable dictionary.
 
-    return template_id
+        Args:
+            template: Template object to convert
 
+        Returns:
+            Dictionary representation with serialized datetimes
+        """
+        data = template.model_dump(mode='json')
+        # Ensure datetimes are strings (IDs are already strings)
+        data['created_at'] = template.created_at.isoformat()
+        data['updated_at'] = template.updated_at.isoformat()
+        return data
 
-def load_template(template_id: str) -> Optional[Template]:
-    """
-    Load a template by ID.
+    def _dict_to_template(self, data: Dict[str, Any]) -> Template:
+        """
+        Convert a dictionary to a Template object.
 
-    Args:
-        template_id: Unique template identifier
+        Args:
+            data: Dictionary representation of a template
 
-    Returns:
-        Template object or None if not found
-    """
-    template_dir = _get_template_dir(template_id)
+        Returns:
+            Template object
+        """
+        return Template.model_validate(data)
 
-    if not template_dir.exists():
-        return None
+    def save_template(
+        self,
+        document_text: str,
+        fields: List[FieldModel],
+        name: str,
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> str:
+        """
+        Save a new template to storage.
 
-    try:
-        # Load document text
-        document_path = template_dir / "document.txt"
-        document_text = document_path.read_text(encoding="utf-8")
+        Args:
+            document_text: Full text content of the document
+            fields: List of editable fields
+            name: Template name
+            metadata: Additional metadata (optional)
 
-        # Load fields
-        fields_path = template_dir / "fields.json"
-        fields_data = json.loads(fields_path.read_text(encoding="utf-8"))
-        fields = [Field(**field_dict) for field_dict in fields_data]
+        Returns:
+            String ID of the created template
 
-        # Load metadata
-        metadata_path = template_dir / "metadata.json"
-        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        Raises:
+            TemplateStoreError: If saving fails
+        """
+        try:
+            # Create template object (ID generated automatically)
+            template = Template(
+                name=name,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow(),
+                document_text=document_text,
+                fields=fields,
+                metadata=metadata or {}
+            )
 
-        # Create template object
-        template = Template(
-            id=metadata["id"],
-            name=metadata["name"],
-            created_at=datetime.fromisoformat(metadata["created_at"]),
-            updated_at=datetime.fromisoformat(metadata["updated_at"]),
-            document_text=document_text,
-            fields=fields,
-        )
+            # Save to file
+            file_path = self._get_template_file_path(template.id)
+            template_data = self._template_to_dict(template)
 
-        return template
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(template_data, f, indent=2, ensure_ascii=False)
 
-    except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
-        print(f"Error loading template {template_id}: {e}")
-        return None
+            return template.id
 
+        except Exception as e:
+            raise TemplateStoreError(f"Failed to save template: {str(e)}") from e
 
-def list_templates() -> List[TemplateMetadata]:
-    """
-    List all available templates.
+    def load_template(self, template_id: str) -> Template:
+        """
+        Load a template from storage.
 
-    Returns:
-        List of template metadata
-    """
-    _ensure_storage_dir()
+        Args:
+            template_id: UUID of the template to load
 
-    templates = []
+        Returns:
+            Template object
 
-    for template_dir in STORAGE_DIR.iterdir():
-        if not template_dir.is_dir():
-            continue
+        Raises:
+            TemplateNotFoundError: If template doesn't exist
+            TemplateStoreError: If loading fails
+        """
+        file_path = self._get_template_file_path(template_id)
 
-        metadata_path = template_dir / "metadata.json"
-        if not metadata_path.exists():
-            continue
+        if not file_path.exists():
+            raise TemplateNotFoundError(
+                f"Template with ID {template_id} not found"
+            )
 
         try:
-            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-            template_meta = TemplateMetadata(
-                id=metadata["id"],
-                name=metadata["name"],
-                created_at=datetime.fromisoformat(metadata["created_at"]),
-                updated_at=datetime.fromisoformat(metadata["updated_at"]),
-                field_count=metadata["field_count"],
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+
+            return self._dict_to_template(data)
+
+        except json.JSONDecodeError as e:
+            raise TemplateStoreError(
+                f"Failed to parse template {template_id}: {str(e)}"
+            ) from e
+        except Exception as e:
+            raise TemplateStoreError(
+                f"Failed to load template {template_id}: {str(e)}"
+            ) from e
+
+    def list_templates(self) -> List[Template]:
+        """
+        List all templates in storage.
+
+        Returns:
+            List of Template objects, sorted by creation date (newest first)
+
+        Raises:
+            TemplateStoreError: If listing fails
+        """
+        try:
+            templates = []
+
+            for file_path in self.storage_path.glob("*.json"):
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    template = self._dict_to_template(data)
+                    templates.append(template)
+                except Exception as e:
+                    # Log error but continue with other templates
+                    print(f"Warning: Failed to load template from {file_path}: {e}")
+                    continue
+
+            # Sort by created_at, newest first
+            templates.sort(key=lambda t: t.created_at, reverse=True)
+
+            return templates
+
+        except Exception as e:
+            raise TemplateStoreError(f"Failed to list templates: {str(e)}") from e
+
+    def update_template(
+        self,
+        template_id: str,
+        updates: TemplateUpdateRequest
+    ) -> Template:
+        """
+        Update an existing template.
+
+        Args:
+            template_id: UUID of the template to update
+            updates: TemplateUpdateRequest with fields to update
+
+        Returns:
+            Updated Template object
+
+        Raises:
+            TemplateNotFoundError: If template doesn't exist
+            TemplateStoreError: If update fails
+        """
+        # Load existing template
+        template = self.load_template(template_id)
+
+        # Apply updates
+        update_data = updates.model_dump(exclude_unset=True)
+
+        if 'name' in update_data:
+            template.name = update_data['name']
+        if 'document_text' in update_data:
+            template.document_text = update_data['document_text']
+        if 'fields' in update_data:
+            template.fields = update_data['fields']
+        if 'metadata' in update_data:
+            # Merge metadata instead of replacing
+            template.metadata.update(update_data['metadata'])
+
+        # Update timestamp
+        template.updated_at = datetime.utcnow()
+
+        # Save updated template
+        try:
+            file_path = self._get_template_file_path(template_id)
+            template_data = self._template_to_dict(template)
+
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(template_data, f, indent=2, ensure_ascii=False)
+
+            return template
+
+        except Exception as e:
+            raise TemplateStoreError(
+                f"Failed to update template {template_id}: {str(e)}"
+            ) from e
+
+    def delete_template(self, template_id: str) -> bool:
+        """
+        Delete a template from storage.
+
+        Args:
+            template_id: UUID of the template to delete
+
+        Returns:
+            True if deletion was successful
+
+        Raises:
+            TemplateNotFoundError: If template doesn't exist
+            TemplateStoreError: If deletion fails
+        """
+        file_path = self._get_template_file_path(template_id)
+
+        if not file_path.exists():
+            raise TemplateNotFoundError(
+                f"Template with ID {template_id} not found"
             )
-            templates.append(template_meta)
-        except (json.JSONDecodeError, KeyError) as e:
-            print(f"Error reading template metadata in {template_dir}: {e}")
-            continue
 
-    # Sort by created_at descending
-    templates.sort(key=lambda t: t.created_at, reverse=True)
+        try:
+            file_path.unlink()
+            return True
 
-    return templates
+        except Exception as e:
+            raise TemplateStoreError(
+                f"Failed to delete template {template_id}: {str(e)}"
+            ) from e
+
+    def template_exists(self, template_id: str) -> bool:
+        """
+        Check if a template exists.
+
+        Args:
+            template_id: UUID of the template to check
+
+        Returns:
+            True if template exists, False otherwise
+        """
+        file_path = self._get_template_file_path(template_id)
+        return file_path.exists()
+
+    def get_template_count(self) -> int:
+        """
+        Get the total number of templates.
+
+        Returns:
+            Number of templates in storage
+        """
+        return len(list(self.storage_path.glob("*.json")))
 
 
-def update_template(template_id: str, updates: dict) -> bool:
+# Singleton instance for easy import
+_default_store: Optional[TemplateStore] = None
+
+
+def get_template_store(storage_path: str = "storage/templates") -> TemplateStore:
     """
-    Update template metadata or content.
+    Get or create the default template store instance.
 
     Args:
-        template_id: Template identifier
-        updates: Dictionary of updates (name, document_text, fields)
+        storage_path: Path to the templates storage directory
 
     Returns:
-        True if successful, False otherwise
+        TemplateStore instance
     """
-    template_dir = _get_template_dir(template_id)
-
-    if not template_dir.exists():
-        return False
-
-    try:
-        # Load current metadata
-        metadata_path = template_dir / "metadata.json"
-        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-
-        # Update metadata fields
-        if "name" in updates:
-            metadata["name"] = updates["name"]
-
-        metadata["updated_at"] = datetime.now().isoformat()
-
-        # Update document text if provided
-        if "document_text" in updates:
-            document_path = template_dir / "document.txt"
-            document_path.write_text(updates["document_text"], encoding="utf-8")
-
-        # Update fields if provided
-        if "fields" in updates:
-            fields_path = template_dir / "fields.json"
-            fields_data = [field.model_dump() if hasattr(field, 'model_dump') else field for field in updates["fields"]]
-            fields_path.write_text(json.dumps(fields_data, indent=2), encoding="utf-8")
-            metadata["field_count"] = len(updates["fields"])
-
-        # Save updated metadata
-        metadata_path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
-
-        return True
-
-    except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
-        print(f"Error updating template {template_id}: {e}")
-        return False
-
-
-def delete_template(template_id: str) -> bool:
-    """
-    Delete a template.
-
-    Args:
-        template_id: Template identifier
-
-    Returns:
-        True if successful, False otherwise
-    """
-    template_dir = _get_template_dir(template_id)
-
-    if not template_dir.exists():
-        return False
-
-    try:
-        # Delete all files in the directory
-        for file_path in template_dir.iterdir():
-            if file_path.is_file():
-                file_path.unlink()
-
-        # Delete the directory
-        template_dir.rmdir()
-
-        return True
-
-    except OSError as e:
-        print(f"Error deleting template {template_id}: {e}")
-        return False
+    global _default_store
+    if _default_store is None:
+        _default_store = TemplateStore(storage_path)
+    return _default_store

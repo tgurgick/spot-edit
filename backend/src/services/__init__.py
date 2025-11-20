@@ -1,14 +1,14 @@
-"""Service layer for document processing and AI operations."""
-from .document_parser import parse_document
-from .field_detector import detect_fields
-from .field_updater import parse_update_command, apply_updates
-from .ai_client import get_ai_client, call_llm
+"""Backend services for document processing and AI operations."""
+
+from .document_parser import DocumentParser
+from .ai_client import AIClient, get_ai_client
+from .field_detector import FieldDetector
+from .field_updater import FieldUpdater
 
 __all__ = [
-    "parse_document",
-    "detect_fields",
-    "parse_update_command",
-    "apply_updates",
+    "DocumentParser",
+    "AIClient",
     "get_ai_client",
-    "call_llm",
+    "FieldDetector",
+    "FieldUpdater",
 ]

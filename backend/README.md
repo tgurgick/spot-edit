@@ -1,184 +1,259 @@
-# Spot Edit Backend API
+# Spot Edit Backend
 
-FastAPI backend for Spot Edit - AI-powered document editing with spot-targeting capabilities.
+Backend services for AI-powered document editing with field detection and natural language updates.
 
-## Features
+## Overview
 
-- **Document Upload & Parsing**: Support for .txt, .pdf, and .docx files
-- **AI Field Detection**: Automatically detect editable fields in documents using LLMs
-- **Template Management**: Save, update, and manage document templates
-- **Natural Language Updates**: Update document fields using natural language commands
-- **RESTful API**: Clean, well-documented API endpoints
+This backend provides core AI services for the Spot Edit application:
 
-## Setup
-
-### Prerequisites
-
-- Python 3.9+
-- pip
-
-### Installation
-
-1. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-2. Configure environment variables:
-```bash
-cp .env.example .env
-# Edit .env and add your API keys
-```
-
-3. Run the server:
-```bash
-python -m src.main
-```
-
-Or with uvicorn directly:
-```bash
-uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-The API will be available at `http://localhost:8000`
-
-## API Documentation
-
-Once the server is running, visit:
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
-
-## API Endpoints
-
-### Document Upload
-- `POST /api/upload` - Upload and analyze document
-
-### Template Management
-- `GET /api/templates` - List all templates
-- `GET /api/templates/{id}` - Get specific template
-- `POST /api/templates` - Create new template
-- `PUT /api/templates/{id}` - Update template metadata
-- `DELETE /api/templates/{id}` - Delete template
-
-### Template Operations
-- `POST /api/templates/{id}/update` - Apply natural language update
-- `GET /api/templates/{id}/download` - Download updated document
-
-### Health Check
-- `GET /health` - Health check endpoint
-- `GET /` - Root endpoint
-
-## Testing
-
-Run tests with pytest:
-```bash
-pytest
-```
-
-Run with coverage:
-```bash
-pytest --cov=src --cov-report=html
-```
+- **Document Parsing**: Extract text from .txt, .pdf, and .docx files
+- **AI-Powered Field Detection**: Automatically identify editable fields in documents
+- **Natural Language Updates**: Process commands like "Change client name to Jane Smith"
+- **LLM Integration**: Support for OpenAI and Anthropic APIs
 
 ## Project Structure
 
 ```
 backend/
 ├── src/
-│   ├── api/
-│   │   ├── routes.py          # API endpoints
-│   │   └── middleware.py      # Middleware
-│   ├── models/
-│   │   └── schema.py          # Data models
-│   ├── services/
-│   │   ├── document_parser.py # Document parsing
-│   │   ├── field_detector.py  # AI field detection
-│   │   ├── field_updater.py   # Field updates
-│   │   └── ai_client.py       # LLM integration
-│   ├── storage/
-│   │   ├── template_store.py  # Template storage
-│   │   └── document_store.py  # Document storage
-│   └── main.py                # FastAPI app
-├── tests/
-│   ├── conftest.py            # Test configuration
-│   └── test_api_routes.py     # API tests
-├── requirements.txt
-├── .env.example
-└── README.md
+│   ├── models/           # Data models and schemas
+│   │   └── schema.py     # Field, Template, UpdateRequest models
+│   ├── services/         # Core business logic
+│   │   ├── document_parser.py    # Document text extraction
+│   │   ├── ai_client.py          # LLM API integration
+│   │   ├── field_detector.py     # AI field detection
+│   │   └── field_updater.py      # Natural language updates
+│   ├── api/              # FastAPI routes (future)
+│   └── storage/          # Template storage (future)
+├── tests/                # Unit tests
+│   ├── services/         # Service tests
+│   └── sample_documents/ # Test documents
+├── requirements.txt      # Python dependencies
+└── README.md            # This file
 ```
 
-## Configuration
+## Installation
 
-### AI Provider
+### Prerequisites
 
-The backend supports both Anthropic (Claude) and OpenAI (GPT) models. Configure your preferred provider in `.env`:
+- Python 3.9 or higher
+- pip
 
-**Anthropic (Recommended):**
-```env
-ANTHROPIC_API_KEY=sk-ant-...
-ANTHROPIC_MODEL=claude-3-5-sonnet-20241022
+### Setup
+
+1. Install dependencies:
+
+```bash
+pip install -r requirements.txt
 ```
 
-**OpenAI:**
-```env
-OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-4-turbo-preview
+2. Configure environment variables:
+
+```bash
+cp .env.example .env
+# Edit .env and add your API keys
 ```
 
-### CORS
+Required environment variables:
 
-Configure allowed origins for CORS in `.env`:
-```env
-FRONTEND_URL=http://localhost:3000
+- `AI_PROVIDER`: Choose "openai" or "anthropic" (default: "anthropic")
+- `ANTHROPIC_API_KEY`: Your Anthropic API key (if using Anthropic)
+- `OPENAI_API_KEY`: Your OpenAI API key (if using OpenAI)
+
+## Usage
+
+### Document Parser
+
+```python
+from backend.src.services.document_parser import DocumentParser
+
+# Parse from file path
+text = DocumentParser.parse_file_path("path/to/document.pdf")
+
+# Parse from file object
+with open("document.docx", "rb") as f:
+    text = DocumentParser.parse_document(f, "docx")
 ```
 
-## Storage
+### AI Client
 
-Templates and uploaded files are stored in the `storage/` directory:
-- `storage/templates/` - Template data
-- `storage/uploads/` - Temporary uploaded files
+```python
+from backend.src.services.ai_client import get_ai_client
 
-Each template is stored as a directory containing:
-- `document.txt` - Original document text
-- `fields.json` - Field definitions
-- `metadata.json` - Template metadata
+# Initialize client (uses environment variables)
+client = get_ai_client()
+
+# Call LLM
+response = client.call_llm(
+    prompt="What is the capital of France?",
+    system_message="You are a helpful assistant.",
+    temperature=0.7
+)
+```
+
+### Field Detector
+
+```python
+from backend.src.services.ai_client import get_ai_client
+from backend.src.services.field_detector import FieldDetector
+
+# Initialize
+ai_client = get_ai_client()
+detector = FieldDetector(ai_client)
+
+# Detect fields in document
+document_text = "Contract with John Doe dated 2024-01-15..."
+fields = detector.detect_fields(document_text)
+
+for field in fields:
+    print(f"{field.name}: {field.current_value} at positions {field.positions}")
+```
+
+### Field Updater
+
+```python
+from backend.src.services.ai_client import get_ai_client
+from backend.src.services.field_updater import FieldUpdater
+
+# Initialize
+ai_client = get_ai_client()
+updater = FieldUpdater(ai_client)
+
+# Parse and apply natural language command
+updated_text, parsed = updater.parse_and_apply(
+    command="Change the client name to Jane Smith and set date to Feb 20, 2024",
+    document_text=original_text,
+    existing_fields=detected_fields
+)
+
+print(f"Applied {len(parsed.updates)} updates")
+print(updated_text)
+```
+
+## Running Tests
+
+```bash
+# Run all tests
+pytest backend/tests/
+
+# Run specific test file
+pytest backend/tests/services/test_document_parser.py
+
+# Run with coverage
+pytest --cov=backend.src backend/tests/
+
+# Run with verbose output
+pytest -v backend/tests/
+```
+
+## Supported File Formats
+
+### Document Parser
+
+- **Plain Text (.txt)**: UTF-8 and Latin-1 encoding
+- **PDF (.pdf)**: Requires PyPDF2
+- **Microsoft Word (.docx)**: Requires python-docx
+
+## AI Provider Support
+
+### Anthropic (Claude)
+
+- Default model: `claude-3-5-sonnet-20241022`
+- Requires: `ANTHROPIC_API_KEY` environment variable
+- Recommended for high-quality field detection and parsing
+
+### OpenAI (GPT)
+
+- Default model: `gpt-4-turbo-preview`
+- Requires: `OPENAI_API_KEY` environment variable
+- Alternative option with similar capabilities
+
+## Data Models
+
+### Field
+
+Represents an editable field in a document:
+
+```python
+{
+    "id": "field_1",
+    "name": "client_name",
+    "type": "text",  # or "date", "number"
+    "positions": [[100, 115], [450, 465]],  # character ranges
+    "current_value": "John Doe"
+}
+```
+
+### Template
+
+Represents a document template with fields:
+
+```python
+{
+    "id": "tmpl_123",
+    "name": "Contract Template",
+    "document_text": "Full text...",
+    "fields": [...]  # List of Field objects
+}
+```
+
+### FieldUpdate
+
+Represents a field update operation:
+
+```python
+{
+    "field_name": "client_name",
+    "new_value": "Jane Smith",
+    "confidence": 0.95  # Optional confidence score
+}
+```
+
+## Error Handling
+
+All services raise specific exceptions:
+
+- `DocumentParsingError`: Document parsing failures
+- `UnsupportedFileTypeError`: Unsupported file format
+- `AIClientError`: LLM API errors
+- `AIRateLimitError`: Rate limit exceeded
+- `FieldDetectionError`: Field detection failures
+- `FieldUpdateError`: Update operation failures
 
 ## Development
 
-### Adding New Endpoints
+### Code Structure
 
-1. Define route in `src/api/routes.py`
-2. Add request/response models in `src/models/schema.py`
-3. Implement business logic in appropriate service
-4. Add tests in `tests/test_api_routes.py`
+- **Models** (`src/models/`): Pydantic models for data validation
+- **Services** (`src/services/`): Business logic and AI operations
+- **Tests** (`tests/`): Unit tests with mocks
 
-### Code Style
+### Adding New Features
 
-- Follow PEP 8 guidelines
-- Use type hints
-- Document functions with docstrings
-- Keep functions focused and small
+1. Define data models in `src/models/schema.py`
+2. Implement service logic in `src/services/`
+3. Add unit tests in `tests/services/`
+4. Update this README with usage examples
 
-## Troubleshooting
+## Path 2 Deliverables
 
-### Import Errors
+This implementation fulfills Path 2 requirements:
 
-If you encounter import errors, make sure you're running from the `backend/` directory:
-```bash
-cd backend
-python -m src.main
-```
+- ✅ Document parser supporting 3 formats (.txt, .pdf, .docx)
+- ✅ LLM integration with error handling and retries
+- ✅ Field detection with structured output
+- ✅ Natural language update processing
+- ✅ Unit tests with mock LLM responses
+- ✅ Sample documents for testing
 
-### AI API Errors
+## Next Steps
 
-Make sure you have a valid API key set in `.env` and that you have credits/quota available.
+Path 2 provides the foundation for:
 
-### File Upload Errors
-
-- Maximum file size: 10MB
-- Supported formats: .txt, .pdf, .docx
-- Ensure files are not corrupted
+- **Path 3**: Backend API Layer (FastAPI routes)
+- **Path 1**: Storage layer for templates and documents
+- **Path 4-5**: Frontend integration
 
 ## License
 
-Part of the Spot Edit project.
+[To be determined]
