@@ -1,0 +1,99 @@
+{
+  "id": "550e8400-e29b-41d4-a716-446655440001",
+  "name": "Welcome Letter Template",
+  "created_at": "2024-01-15T10:30:00.000000",
+  "updated_at": "2024-01-15T10:30:00.000000",
+  "document_text": "Dear {{recipient_name}},\n\nWelcome to our organization! We are thrilled to have you join us.\n\nYour employee ID is: {{employee_id}}\nStart date: {{start_date}}\nDepartment: {{department}}\n\nPlease report to {{manager_name}} on your first day.\n\nBest regards,\n{{hr_representative}}\nHuman Resources",
+  "fields": [
+    {
+      "id": "650e8400-e29b-41d4-a716-446655440001",
+      "name": "recipient_name",
+      "field_type": "text",
+      "positions": [
+        {
+          "page": 1,
+          "start": 5,
+          "end": 25
+        }
+      ],
+      "current_value": "Jane Smith",
+      "metadata": {}
+    },
+    {
+      "id": "650e8400-e29b-41d4-a716-446655440002",
+      "name": "employee_id",
+      "field_type": "text",
+      "positions": [
+        {
+          "page": 1,
+          "start": 120,
+          "end": 130
+        }
+      ],
+      "current_value": "EMP-12345",
+      "metadata": {}
+    },
+    {
+      "id": "650e8400-e29b-41d4-a716-446655440003",
+      "name": "start_date",
+      "field_type": "date",
+      "positions": [
+        {
+          "page": 1,
+          "start": 145,
+          "end": 155
+        }
+      ],
+      "current_value": "2024-02-01",
+      "metadata": {}
+    },
+    {
+      "id": "650e8400-e29b-41d4-a716-446655440004",
+      "name": "department",
+      "field_type": "text",
+      "positions": [
+        {
+          "page": 1,
+          "start": 170,
+          "end": 190
+        }
+      ],
+      "current_value": "Engineering",
+      "metadata": {}
+    },
+    {
+      "id": "650e8400-e29b-41d4-a716-446655440005",
+      "name": "manager_name",
+      "field_type": "text",
+      "positions": [
+        {
+          "page": 1,
+          "start": 210,
+          "end": 230
+        }
+      ],
+      "current_value": "John Manager",
+      "metadata": {}
+    },
+    {
+      "id": "650e8400-e29b-41d4-a716-446655440006",
+      "name": "hr_representative",
+      "field_type": "text",
+      "positions": [
+        {
+          "page": 1,
+          "start": 270,
+          "end": 295
+        }
+      ],
+      "current_value": "Sarah HR",
+      "metadata": {}
+    }
+  ],
+  "metadata": {
+    "file_type": "pdf",
+    "original_filename": "welcome_letter_template.pdf",
+    "category": "HR",
+    "language": "en"
+  }
+}

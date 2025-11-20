@@ -3,9 +3,6 @@
 .env.local
 .env.*.local
 
-# Storage directories (contains user data)
-storage/
-
 # Python
 __pycache__/
 *.py[cod]
@@ -38,6 +35,7 @@ MANIFEST
 htmlcov/
 *.cover
 .hypothesis/
+.tox/
 
 # Node
 node_modules/
@@ -77,3 +75,11 @@ temp/
 Thumbs.db
 .Spotlight-V100
 .Trashes
+
+# Storage (exclude user data, keep directory structure)
+storage/templates/*.json
+storage/uploads/*
+!storage/templates/examples/
+!storage/.gitkeep
+!storage/templates/.gitkeep
+!storage/uploads/.gitkeep

@@ -1,38 +1,90 @@
-/**
- * TypeScript type definitions for Spot Edit
- */
+// Field types
+export type FieldType = 'text' | 'date' | 'number' | 'email' | 'phone' | 'currency' | 'other';
 
+// Position of a field occurrence in the document
+export interface FieldPosition {
+  start: number;
+  end: number;
+  text: string;
+}
+
+// Field detected or confirmed by the user
 export interface Field {
-  id: string
-  name: string
-  type: 'text' | 'date' | 'number' | 'email' | 'phone'
-  positions: [number, number][]
-  current_value: string
+  id: string;
+  name: string;
+  type: FieldType;
+  positions: FieldPosition[];
+  currentValue?: string;
+  confirmed: boolean;
 }
 
+// Template metadata
 export interface Template {
-  id: string
-  name: string
-  created_at: string
-  document_text: string
-  fields: Field[]
+  id: string;
+  name: string;
+  createdAt: string;
+  documentText: string;
+  fields: Field[];
 }
 
-export interface UploadResponse {
-  file_id: string
-  detected_fields: Field[]
-  document_text: string
+// API Request/Response types
+
+export interface UploadDocumentRequest {
+  file: File;
 }
 
-export interface UpdateRequest {
-  command: string
+export interface UploadDocumentResponse {
+  documentText: string;
+  detectedFields: Field[];
+  temporaryId: string;
 }
 
-export interface UpdateResponse {
-  updated_document: string
-  changes: {
-    field_id: string
-    old_value: string
-    new_value: string
-  }[]
+export interface SaveTemplateRequest {
+  name: string;
+  documentText: string;
+  fields: Field[];
+}
+
+export interface SaveTemplateResponse {
+  templateId: string;
+  message: string;
+}
+
+export interface GetTemplatesResponse {
+  templates: Template[];
+}
+
+export interface GetTemplateResponse {
+  template: Template;
+}
+
+export interface UpdateTemplateRequest {
+  command: string;
+}
+
+export interface UpdateTemplateResponse {
+  updatedDocument: string;
+  fieldsChanged: string[];
+}
+
+export interface ErrorResponse {
+  error: string;
+  message: string;
+  details?: any;
+}
+
+// UI State types
+
+export interface UploadState {
+  file: File | null;
+  uploading: boolean;
+  error: string | null;
+}
+
+export interface ConfirmationState {
+  documentText: string;
+  fields: Field[];
+  selectedField: string | null;
+  saving: boolean;
+  error: string | null;
 }

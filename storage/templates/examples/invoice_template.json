@@ -1,0 +1,127 @@
+{
+  "id": "550e8400-e29b-41d4-a716-446655440002",
+  "name": "Invoice Template",
+  "created_at": "2024-01-16T14:20:00.000000",
+  "updated_at": "2024-01-16T14:20:00.000000",
+  "document_text": "INVOICE\n\nInvoice Number: {{invoice_number}}\nDate: {{invoice_date}}\n\nBill To:\n{{client_name}}\n{{client_address}}\n{{client_email}}\n\nDescription: {{service_description}}\nAmount: ${{amount}}\n\nPayment Due: {{due_date}}\n\nThank you for your business!",
+  "fields": [
+    {
+      "id": "650e8400-e29b-41d4-a716-446655440010",
+      "name": "invoice_number",
+      "field_type": "text",
+      "positions": [
+        {
+          "page": 1,
+          "start": 25,
+          "end": 35
+        }
+      ],
+      "current_value": "INV-2024-001",
+      "metadata": {}
+    },
+    {
+      "id": "650e8400-e29b-41d4-a716-446655440011",
+      "name": "invoice_date",
+      "field_type": "date",
+      "positions": [
+        {
+          "page": 1,
+          "start": 45,
+          "end": 55
+        }
+      ],
+      "current_value": "2024-01-16",
+      "metadata": {}
+    },
+    {
+      "id": "650e8400-e29b-41d4-a716-446655440012",
+      "name": "client_name",
+      "field_type": "text",
+      "positions": [
+        {
+          "page": 1,
+          "start": 70,
+          "end": 90
+        }
+      ],
+      "current_value": "Acme Corporation",
+      "metadata": {}
+    },
+    {
+      "id": "650e8400-e29b-41d4-a716-446655440013",
+      "name": "client_address",
+      "field_type": "address",
+      "positions": [
+        {
+          "page": 1,
+          "start": 95,
+          "end": 130
+        }
+      ],
+      "current_value": "123 Business St, Suite 100, City, ST 12345",
+      "metadata": {}
+    },
+    {
+      "id": "650e8400-e29b-41d4-a716-446655440014",
+      "name": "client_email",
+      "field_type": "email",
+      "positions": [
+        {
+          "page": 1,
+          "start": 135,
+          "end": 160
+        }
+      ],
+      "current_value": "billing@acme.com",
+      "metadata": {}
+    },
+    {
+      "id": "650e8400-e29b-41d4-a716-446655440015",
+      "name": "service_description",
+      "field_type": "text",
+      "positions": [
+        {
+          "page": 1,
+          "start": 180,
+          "end": 220
+        }
+      ],
+      "current_value": "Web Development Services - January 2024",
+      "metadata": {}
+    },
+    {
+      "id": "650e8400-e29b-41d4-a716-446655440016",
+      "name": "amount",
+      "field_type": "number",
+      "positions": [
+        {
+          "page": 1,
+          "start": 230,
+          "end": 240
+        }
+      ],
+      "current_value": "5000.00",
+      "metadata": {}
+    },
+    {
+      "id": "650e8400-e29b-41d4-a716-446655440017",
+      "name": "due_date",
+      "field_type": "date",
+      "positions": [
+        {
+          "page": 1,
+          "start": 260,
+          "end": 270
+        }
+      ],
+      "current_value": "2024-02-15",
+      "metadata": {}
+    }
+  ],
+  "metadata": {
+    "file_type": "pdf",
+    "original_filename": "invoice_template.pdf",
+    "category": "Finance",
+    "language": "en"
+  }
+}
