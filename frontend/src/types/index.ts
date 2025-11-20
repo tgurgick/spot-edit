@@ -1,37 +1,83 @@
-/**
- * Represents a field within a document template
- */
+// Field types
+export type FieldType = 'text' | 'date' | 'number' | 'email' | 'phone' | 'currency' | 'other';
+
+// Position of a field occurrence in the document
+export interface FieldPosition {
+  start: number;
+  end: number;
+  text: string;
+}
+
+// Field detected or confirmed by the user
 export interface Field {
   id: string;
   name: string;
-  type: 'text' | 'date' | 'number' | string;
-  positions: [number, number][]; // Array of [start, end] positions in the document
-  current_value: string;
+  type: FieldType;
+  positions: FieldPosition[];
+  currentValue?: string;
+  confirmed: boolean;
 }
 
-/**
- * Represents a complete document template
- */
+// Template metadata
 export interface Template {
   id: string;
   name: string;
-  created_at: string;
-  updated_at?: string;
-  document_text: string;
+  createdAt: string;
+  updatedAt?: string;
+  documentText: string;
   fields: Field[];
 }
 
-/**
- * Request to update a template via natural language command
- */
-export interface UpdateRequest {
-  command: string;
-  template_id: string;
+// Template metadata for list views
+export interface TemplateMetadata {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt?: string;
+  fieldCount: number;
 }
 
-/**
- * Response from update request with proposed changes
- */
+// API Request/Response types
+
+export interface UploadDocumentRequest {
+  file: File;
+}
+
+export interface UploadDocumentResponse {
+  documentText: string;
+  detectedFields: Field[];
+  temporaryId: string;
+}
+
+export interface SaveTemplateRequest {
+  name: string;
+  documentText: string;
+  fields: Field[];
+}
+
+export interface SaveTemplateResponse {
+  templateId: string;
+  message: string;
+}
+
+export interface GetTemplatesResponse {
+  templates: Template[];
+}
+
+export interface GetTemplateResponse {
+  template: Template;
+}
+
+export interface UpdateTemplateRequest {
+  command: string;
+}
+
+export interface UpdateTemplateResponse {
+  updatedDocument: string;
+  fieldsChanged: string[];
+}
+
+// Extended update response with proposed changes (for Path 5)
 export interface UpdateResponse {
   success: boolean;
   updated_template?: Template;
@@ -44,25 +90,33 @@ export interface UpdateResponse {
   error?: string;
 }
 
-/**
- * Message in the chat interface
- */
+export interface ErrorResponse {
+  error: string;
+  message: string;
+  details?: any;
+}
+
+// UI State types
+
+export interface UploadState {
+  file: File | null;
+  uploading: boolean;
+  error: string | null;
+}
+
+export interface ConfirmationState {
+  documentText: string;
+  fields: Field[];
+  selectedField: string | null;
+  saving: boolean;
+  error: string | null;
+}
+
+// Chat interface types (for Path 5)
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
   proposed_changes?: UpdateResponse['proposed_changes'];
-}
-
-/**
- * Metadata for template cards in the library
- */
-export interface TemplateMetadata {
-  id: string;
-  name: string;
-  created_at: string;
-  updated_at?: string;
-  field_count: number;
-  last_modified_by?: string;
 }

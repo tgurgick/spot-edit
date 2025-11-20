@@ -1,6 +1,7 @@
-import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { Home } from './pages/Home';
-import { Upload } from './pages/Upload';
+import Upload from './pages/Upload';
+import Confirm from './pages/Confirm';
 import { Templates } from './pages/Templates';
 import { Edit } from './pages/Edit';
 
@@ -77,8 +78,10 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/upload" element={<Upload />} />
+          <Route path="/confirm" element={<Confirm />} />
           <Route path="/templates" element={<Templates />} />
           <Route path="/edit/:id" element={<Edit />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>
     </BrowserRouter>
