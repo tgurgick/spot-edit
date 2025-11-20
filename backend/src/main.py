@@ -1,16 +1,24 @@
-"""FastAPI application setup for Spot Edit."""
+"""
+Spot Edit Backend API
+Main application entry point
+"""
 import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-from .api.routes import router
-from .api.middleware import error_handling_middleware, logging_middleware
-
-
 # Load environment variables
 load_dotenv()
+
+
+# Try to import routes and middleware if they exist
+try:
+    from .api.routes import router
+    from .api.middleware import error_handling_middleware, logging_middleware
+    HAS_ROUTES = True
+except ImportError:
+    HAS_ROUTES = False
 
 
 @asynccontextmanager
@@ -35,12 +43,8 @@ app = FastAPI(
 )
 
 # Configure CORS
-origins = [
-    "http://localhost:3000",  # React dev server
-    "http://localhost:5173",  # Vite dev server
-    "http://localhost:8080",  # Alternative frontend port
-    os.getenv("FRONTEND_URL", "http://localhost:3000"),
-]
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000,http://localhost:8080").split(",")
+origins = [origin.strip() for origin in allowed_origins]
 
 app.add_middleware(
     CORSMiddleware,
@@ -50,12 +54,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Add custom middleware
-app.middleware("http")(logging_middleware)
-app.middleware("http")(error_handling_middleware)
+# Add custom middleware if available
+if HAS_ROUTES:
+    app.middleware("http")(logging_middleware)
+    app.middleware("http")(error_handling_middleware)
 
-# Include API routes
-app.include_router(router, prefix="/api")
+    # Include API routes
+    app.include_router(router, prefix="/api")
 
 
 # Health check endpoint
@@ -74,6 +79,7 @@ async def root():
     """Root endpoint."""
     return {
         "message": "Welcome to Spot Edit API",
+        "version": "0.1.0",
         "docs": "/docs",
         "health": "/health"
     }
