@@ -1,0 +1,42 @@
+SERVICE AGREEMENT
+
+This Service Agreement ("Agreement") is entered into on January 15, 2024 ("Effective Date") between:
+
+CLIENT INFORMATION:
+Name: John Doe
+Company: Acme Corporation
+Address: 123 Main Street, Springfield, IL 62701
+Email: john.doe@acmecorp.com
+Phone: (555) 123-4567
+
+SERVICE PROVIDER:
+Name: TechServices Inc.
+Address: 456 Tech Boulevard, San Francisco, CA 94102
+Email: info@techservices.com
+Phone: (555) 987-6543
+
+TERMS:
+Service Duration: 12 months
+Start Date: February 1, 2024
+End Date: January 31, 2025
+Monthly Fee: $5,000.00
+Total Contract Value: $60,000.00
+
+PAYMENT TERMS:
+Payment is due on the first day of each month. Late payments will incur a fee of $250.00.
+
+SERVICES PROVIDED:
+The Service Provider agrees to provide software development and maintenance services to John Doe and Acme Corporation throughout the contract period.
+
+TERMINATION:
+Either party may terminate this agreement with 30 days written notice.
+
+SIGNATURES:
+Client: _________________________ Date: January 15, 2024
+        John Doe
+        Acme Corporation
+
+Service Provider: ________________ Date: January 15, 2024
+                 TechServices Inc.
+
+This agreement is governed by the laws of the State of California.
