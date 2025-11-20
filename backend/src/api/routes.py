@@ -1,362 +1,289 @@
-"""API routes for Spot Edit."""
+"""API routes for Spot Edit - integrates Path 1, 2, and 3."""
 from typing import List
 from fastapi import APIRouter, UploadFile, File, HTTPException, status
 from fastapi.responses import Response
+from pydantic import BaseModel
 
 from ..models.schema import (
     Template,
-    TemplateMetadata,
     TemplateCreateRequest,
-    TemplateUpdateMetadataRequest,
-    UpdateRequest,
-    UpdateResponse,
-    UploadResponse,
-    ErrorResponse,
+    TemplateUpdateRequest,
 )
-from ..services import (
-    parse_document,
-    detect_fields,
-    parse_update_command,
-    apply_updates,
-)
-from ..storage import (
-    save_template,
-    load_template,
-    list_templates,
-    update_template,
-    delete_template,
-    save_upload,
-)
-from .middleware import validate_file_size, validate_file_extension
+from ..services.document_parser import DocumentParser, DocumentParsingError, UnsupportedFileTypeError
+from ..services.field_detector import FieldDetector, FieldDetectionError
+from ..services.field_updater import FieldUpdater, FieldUpdateError
+from ..services.ai_client import get_ai_client, AIClientError
+from ..storage.template_store import get_template_store, TemplateNotFoundError, TemplateStoreError
 
 
 router = APIRouter()
 
+# Maximum file size (10MB)
+MAX_FILE_SIZE = 10 * 1024 * 1024
+
+
+class UpdateFieldsRequest(BaseModel):
+    """Request model for updating fields."""
+    command: str
+
 
 @router.post(
     "/upload",
-    response_model=UploadResponse,
     status_code=status.HTTP_200_OK,
-    responses={
-        400: {"model": ErrorResponse, "description": "Invalid file or file format"},
-        500: {"model": ErrorResponse, "description": "Server error"},
-    },
-    summary="Upload and analyze document",
-    description="Upload a document (txt, pdf, docx) and detect editable fields using AI"
+    summary="Upload and analyze document"
 )
 async def upload_document(file: UploadFile = File(...)):
-    """
-    Upload a document and detect editable fields.
-
-    - **file**: Document file to upload (txt, pdf, docx)
-
-    Returns detected fields and document text.
-    """
-    # Validate file
+    """Upload a document and detect editable fields."""
     if not file.filename:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No filename provided"
         )
 
-    validate_file_extension(file.filename)
-
     # Read file content
     file_content = await file.read()
-    validate_file_size(len(file_content))
 
-    # Save upload temporarily
-    file_id = save_upload(file_content, file.filename)
+    # Validate file size
+    if len(file_content) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"File size exceeds maximum allowed size of {MAX_FILE_SIZE // (1024*1024)}MB"
+        )
 
     # Parse document
     try:
-        document_text = parse_document(file_content, file.filename)
-    except ValueError as e:
+        document_parser = DocumentParser()
+        document_text = document_parser.parse_bytes(file_content, file.filename)
+    except UnsupportedFileTypeError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
+    except DocumentParsingError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to parse document: {str(e)}"
+        )
 
     # Detect fields using AI
-    detected_fields = detect_fields(document_text)
+    try:
+        ai_client = get_ai_client()
+        field_detector = FieldDetector(ai_client)
+        detected_fields = field_detector.detect_fields(document_text)
+    except (FieldDetectionError, AIClientError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to detect fields: {str(e)}"
+        )
 
-    return UploadResponse(
-        file_id=file_id,
-        document_text=document_text,
-        detected_fields=detected_fields
-    )
+    return {
+        "file_id": file.filename,
+        "document_text": document_text,
+        "detected_fields": [field.model_dump() for field in detected_fields]
+    }
 
 
 @router.get(
     "/templates",
-    response_model=List[TemplateMetadata],
+    response_model=List[Template],
     status_code=status.HTTP_200_OK,
-    summary="List all templates",
-    description="Get a list of all saved document templates"
+    summary="List all templates"
 )
-async def get_templates():
-    """
-    List all saved templates.
-
-    Returns list of template metadata (id, name, created_at, field_count).
-    """
-    templates = list_templates()
-    return templates
+async def list_all_templates():
+    """List all saved templates."""
+    try:
+        template_store = get_template_store()
+        templates = template_store.list_templates()
+        return templates
+    except TemplateStoreError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to list templates: {str(e)}"
+        )
 
 
 @router.get(
     "/templates/{template_id}",
     response_model=Template,
     status_code=status.HTTP_200_OK,
-    responses={
-        404: {"model": ErrorResponse, "description": "Template not found"},
-    },
-    summary="Get specific template",
-    description="Retrieve a template by its ID with full details"
+    summary="Get specific template"
 )
 async def get_template(template_id: str):
-    """
-    Get a specific template by ID.
-
-    - **template_id**: Unique template identifier
-
-    Returns complete template with document text and fields.
-    """
-    template = load_template(template_id)
-
-    if not template:
+    """Get a specific template by ID."""
+    try:
+        template_store = get_template_store()
+        template = template_store.load_template(template_id)
+        return template
+    except TemplateNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Template with id '{template_id}' not found"
         )
-
-    return template
+    except TemplateStoreError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to load template: {str(e)}"
+        )
 
 
 @router.post(
     "/templates",
-    response_model=dict,
     status_code=status.HTTP_201_CREATED,
-    responses={
-        400: {"model": ErrorResponse, "description": "Invalid request"},
-    },
-    summary="Save new template",
-    description="Create a new template from document and detected fields"
+    summary="Create new template"
 )
 async def create_template(request: TemplateCreateRequest):
-    """
-    Save a new template.
-
-    - **name**: Template name
-    - **document_text**: Original document text
-    - **fields**: List of detected/confirmed fields
-
-    Returns the new template ID.
-    """
-    if not request.name or not request.name.strip():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Template name is required"
+    """Save a new template."""
+    try:
+        template_store = get_template_store()
+        template_id = template_store.save_template(
+            document_text=request.document_text,
+            fields=request.fields,
+            name=request.name,
+            metadata=request.metadata
         )
-
-    if not request.document_text:
+        return {
+            "template_id": template_id,
+            "message": "Template created successfully"
+        }
+    except TemplateStoreError as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Document text is required"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create template: {str(e)}"
         )
-
-    template_id = save_template(
-        document_text=request.document_text,
-        fields=request.fields,
-        name=request.name
-    )
-
-    return {
-        "template_id": template_id,
-        "message": "Template created successfully"
-    }
 
 
 @router.put(
     "/templates/{template_id}",
-    response_model=dict,
+    response_model=Template,
     status_code=status.HTTP_200_OK,
-    responses={
-        404: {"model": ErrorResponse, "description": "Template not found"},
-    },
-    summary="Update template metadata",
-    description="Update template name or other metadata"
+    summary="Update template"
 )
-async def update_template_metadata(template_id: str, request: TemplateUpdateMetadataRequest):
-    """
-    Update template metadata (name, etc.).
-
-    - **template_id**: Template identifier
-    - **name**: New template name (optional)
-
-    Returns success message.
-    """
-    # Check if template exists
-    template = load_template(template_id)
-    if not template:
+async def update_template(template_id: str, request: TemplateUpdateRequest):
+    """Update template metadata or content."""
+    try:
+        template_store = get_template_store()
+        updated_template = template_store.update_template(template_id, request)
+        return updated_template
+    except TemplateNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Template with id '{template_id}' not found"
         )
-
-    # Prepare updates
-    updates = {}
-    if request.name is not None:
-        updates["name"] = request.name
-
-    # Apply updates
-    success = update_template(template_id, updates)
-
-    if not success:
+    except TemplateStoreError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update template"
+            detail=f"Failed to update template: {str(e)}"
         )
-
-    return {
-        "message": "Template updated successfully",
-        "template_id": template_id
-    }
 
 
 @router.delete(
     "/templates/{template_id}",
-    response_model=dict,
     status_code=status.HTTP_200_OK,
-    responses={
-        404: {"model": ErrorResponse, "description": "Template not found"},
-    },
-    summary="Delete template",
-    description="Delete a template by its ID"
+    summary="Delete template"
 )
-async def delete_template_by_id(template_id: str):
-    """
-    Delete a template.
-
-    - **template_id**: Template identifier
-
-    Returns success message.
-    """
-    # Check if template exists
-    template = load_template(template_id)
-    if not template:
+async def delete_template(template_id: str):
+    """Delete a template."""
+    try:
+        template_store = get_template_store()
+        template_store.delete_template(template_id)
+        return {
+            "message": "Template deleted successfully",
+            "template_id": template_id
+        }
+    except TemplateNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Template with id '{template_id}' not found"
         )
-
-    # Delete template
-    success = delete_template(template_id)
-
-    if not success:
+    except TemplateStoreError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete template"
+            detail=f"Failed to delete template: {str(e)}"
         )
-
-    return {
-        "message": "Template deleted successfully",
-        "template_id": template_id
-    }
 
 
 @router.post(
     "/templates/{template_id}/update",
-    response_model=UpdateResponse,
     status_code=status.HTTP_200_OK,
-    responses={
-        404: {"model": ErrorResponse, "description": "Template not found"},
-        400: {"model": ErrorResponse, "description": "Invalid update command"},
-    },
-    summary="Apply natural language update",
-    description="Update template fields using natural language commands"
+    summary="Apply natural language update"
 )
-async def update_template_fields(template_id: str, request: UpdateRequest):
-    """
-    Apply natural language updates to template fields.
+async def update_template_fields(template_id: str, request: UpdateFieldsRequest):
+    """Apply natural language updates to template fields."""
+    try:
+        template_store = get_template_store()
 
-    - **template_id**: Template identifier
-    - **command**: Natural language command (e.g., "Change client name to Acme Corp")
+        # Load template
+        template = template_store.load_template(template_id)
 
-    Returns updated document and list of updated fields.
-    """
-    # Load template
-    template = load_template(template_id)
-    if not template:
+        # Parse and apply updates
+        ai_client = get_ai_client()
+        field_updater = FieldUpdater(ai_client)
+        updated_text, parsed = field_updater.parse_and_apply(
+            command=request.command,
+            document_text=template.document_text,
+            existing_fields=template.fields
+        )
+
+        # Update template
+        update_req = TemplateUpdateRequest(
+            document_text=updated_text,
+            fields=parsed.updated_fields
+        )
+        updated_template = template_store.update_template(template_id, update_req)
+
+        return {
+            "success": True,
+            "message": f"Applied {len(parsed.updates)} update(s)",
+            "updated_fields": [u.field_name for u in parsed.updates],
+            "template": updated_template.model_dump()
+        }
+
+    except TemplateNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Template with id '{template_id}' not found"
         )
-
-    # Parse update command
-    field_updates = parse_update_command(request.command, template.fields)
-
-    if not field_updates:
-        return UpdateResponse(
-            success=False,
-            message="No field updates identified from command",
-            updated_fields=[],
-            document_text=template.document_text
+    except (FieldUpdateError, AIClientError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to apply updates: {str(e)}"
         )
-
-    # Apply updates
-    updated_text, updated_fields = apply_updates(
-        template.document_text,
-        field_updates,
-        template.fields
-    )
-
-    # Save updated template
-    update_template(template_id, {
-        "document_text": updated_text,
-        "fields": updated_fields
-    })
-
-    return UpdateResponse(
-        success=True,
-        message=f"Updated {len(field_updates)} field(s)",
-        updated_fields=list(field_updates.keys()),
-        document_text=updated_text
-    )
+    except TemplateStoreError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
 
 @router.get(
     "/templates/{template_id}/download",
     status_code=status.HTTP_200_OK,
-    responses={
-        404: {"model": ErrorResponse, "description": "Template not found"},
-    },
-    summary="Download updated document",
-    description="Download the current document as plain text"
+    summary="Download template document"
 )
 async def download_template(template_id: str):
-    """
-    Download the current document text.
+    """Download the current document text."""
+    try:
+        template_store = get_template_store()
+        template = template_store.load_template(template_id)
 
-    - **template_id**: Template identifier
+        # Return document as text file
+        filename = f"{template.name.replace(' ', '_')}.txt"
 
-    Returns document as plain text file.
-    """
-    # Load template
-    template = load_template(template_id)
-    if not template:
+        return Response(
+            content=template.document_text,
+            media_type="text/plain",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}"
+            }
+        )
+
+    except TemplateNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Template with id '{template_id}' not found"
         )
-
-    # Return document as text file
-    filename = f"{template.name.replace(' ', '_')}.txt"
-
-    return Response(
-        content=template.document_text,
-        media_type="text/plain",
-        headers={
-            "Content-Disposition": f"attachment; filename={filename}"
-        }
-    )
+    except TemplateStoreError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to load template: {str(e)}"
+        )
